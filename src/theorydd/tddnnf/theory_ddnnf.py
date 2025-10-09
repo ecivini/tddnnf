@@ -1,0 +1,161 @@
+from typing import Dict, Tuple, List
+import time
+import logging
+
+from theorydd.solvers.mathsat_total import MathSATTotalEnumerator
+from theorydd.ddnnf.d4_compiler import D4Compiler
+from pysmt.fnode import FNode
+from pysmt.shortcuts import write_smtlib
+from theorydd.solvers.solver import SMTEnumerator
+from theorydd import formula
+from theorydd.solvers.lemma_extractor import find_qvars, extract
+from theorydd.formula import get_atoms
+from theorydd.constants import SAT
+from theorydd.util._string_generator import SequentialStringGenerator
+
+
+class TheoryDDNNF():
+    
+    def __init__(
+        self, 
+        phi: FNode, 
+        solver: MathSATTotalEnumerator,
+        out_path: str | None = None,
+        tlemmas: List[FNode] | None = None,
+        load_lemmas: str | None = None,
+        sat_result: bool | None = None,
+        computation_logger: Dict | None = None
+    ) -> None:
+        if not hasattr(self, "structure_name"):
+            self.structure_name = "T-DDNNF"
+
+        if not hasattr(self, "logger"):
+            self.logger = logging.getLogger("theorydd_bdd")
+    
+        if computation_logger is None:
+            computation_logger = {}
+        if computation_logger.get(self.structure_name) is None:
+            computation_logger[self.structure_name] = {}
+
+        # NORMALIZE PHI
+        phi = self._normalize_input(
+            phi, solver, computation_logger[self.structure_name]
+        )
+
+        # LOAD LEMMAS
+        tlemmas, sat_result = self._load_lemmas(
+            phi,
+            solver,
+            tlemmas,
+            load_lemmas,
+            sat_result,
+            computation_logger[self.structure_name],
+        )
+        self.sat_result = sat_result
+        self.tlemmas = tlemmas
+
+        # COMPUTE PHI AND LEMMAS
+        phi_and_lemmas = formula.get_phi_and_lemmas(phi, tlemmas)
+
+        # FIND QVARS
+        self.qvars = find_qvars(
+            phi,
+            phi_and_lemmas,
+            computation_logger=computation_logger[self.structure_name],
+        )
+
+        # # THESE ATOMS SHOULD ALREADY BE NORMALIZED
+        # # SINCE THEY COME FROM A NORMALIZED FORMULA
+        # atoms = get_atoms(phi_and_lemmas)
+
+        # # CREATING VARIABLE MAPPING
+        # self.abstraction = self._compute_mapping(
+        #     atoms, computation_logger[self.structure_name]
+        # )
+        # self.refinement = {v: k for k, v in self.abstraction.items()}
+
+        # Compile to d-DNNF
+        if sat_result == SAT:
+            d4 = D4Compiler()
+            self.phi_ddnnf, _, _ = d4.compile_dDNNF(
+                phi=phi_and_lemmas,
+                sat_result=sat_result,
+                back_to_fnode=True
+            )
+
+            if out_path is not None:
+                # Store the d-DNNF to a file
+                write_smtlib(self.phi_ddnnf, out_path)
+
+
+    # Taken From theory_dd.py
+    # TODO: Is there the need to create an abstract TDDNNF class containing these methods?
+    def _normalize_input(
+        self, phi: FNode, solver: SMTEnumerator, computation_logger: Dict
+    ) -> FNode:
+        """normalizes the input"""
+        start_time = time.time()
+        self.logger.info("Normalizing phi according to solver...")
+        phi = formula.get_normalized(phi, solver.get_converter())
+        elapsed_time = time.time() - start_time
+        self.logger.info("Phi was normalized in %s seconds", str(elapsed_time))
+        computation_logger["phi normalization time"] = elapsed_time
+        return phi
+
+    # Taken From theory_dd.py
+    # TODO: Is there the need to create an abstract TDDNNF class containing these methods?
+    def _load_lemmas(
+        self,
+        phi: FNode,
+        smt_solver: SMTEnumerator,
+        tlemmas: List[FNode] | None,
+        load_lemmas: str | None,
+        sat_result: bool | None,
+        computation_logger: Dict,
+    ) -> Tuple[List[FNode], bool | None]:
+        """loads the lemmas"""
+        # LOADING LEMMAS
+        start_time = time.time()
+        self.logger.info("Loading Lemmas...")
+        if tlemmas is not None:
+            computation_logger["ALL SMT mode"] = "loaded"
+        elif load_lemmas is not None:
+            computation_logger["ALL SMT mode"] = "loaded"
+            tlemmas = [formula.read_phi(load_lemmas)]
+        else:
+            computation_logger["ALL SMT mode"] = "computed"
+            sat_result, tlemmas, _ = extract(
+                phi,
+                smt_solver,
+                computation_logger=computation_logger,
+            )
+        tlemmas = list(
+            map(
+                lambda l: formula.get_normalized(l, smt_solver.get_converter()), tlemmas
+            )
+        )
+        # BASICALLY PADDING TO AVOID POSSIBLE ISSUES
+        while len(tlemmas) < 2:
+            tlemmas.append(formula.top())
+        elapsed_time = time.time() - start_time
+        self.logger.info("Lemmas loaded in %s seconds", str(elapsed_time))
+        computation_logger["lemmas loading time"] = elapsed_time
+        return tlemmas, sat_result
+    
+    # # Taken From theory_bdd.py
+    # # TODO: Is there the need to create an abstract TDDNNF class containing these methods?
+    # def _compute_mapping(
+    #     self, atoms: List[FNode], computation_logger: dict
+    # ) -> Dict[FNode, str]:
+    #     """computes the mapping"""
+    #     start_time = time.time()
+    #     self.logger.info("Creating mapping...")
+    #     mapping = {}
+
+    #     string_generator = SequentialStringGenerator()
+    #     for atom in atoms:
+    #         mapping[atom] = string_generator.next_string()
+    #     elapsed_time = time.time() - start_time
+    #     self.logger.info("Mapping created in %s seconds", str(elapsed_time))
+    #     computation_logger["variable mapping creation time"] = elapsed_time
+    #     return mapping
