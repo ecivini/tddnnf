@@ -19,7 +19,7 @@ class TheoryDDNNF():
     def __init__(
         self, 
         phi: FNode, 
-        solver: MathSATTotalEnumerator,
+        solver: MathSATTotalEnumerator | None = None,
         out_path: str | None = None,
         tlemmas: List[FNode] | None = None,
         load_lemmas: str | None = None,
@@ -30,7 +30,10 @@ class TheoryDDNNF():
             self.structure_name = "T-DDNNF"
 
         if not hasattr(self, "logger"):
-            self.logger = logging.getLogger("theorydd_bdd")
+            self.logger = logging.getLogger("theory_ddnnf")
+
+        if solver is None:
+            solver = MathSATTotalEnumerator()
     
         if computation_logger is None:
             computation_logger = {}
