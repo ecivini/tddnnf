@@ -66,6 +66,7 @@ class TheoryDDNNF():
             self.phi_ddnnf, _, _ = d4.compile_dDNNF(
                 phi=phi_and_lemmas,
                 back_to_fnode=True,
+                computation_logger=computation_logger[self.structure_name]
             )
 
             if out_path is not None:
