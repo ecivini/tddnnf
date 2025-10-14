@@ -60,30 +60,12 @@ class TheoryDDNNF():
         # COMPUTE PHI AND LEMMAS
         phi_and_lemmas = formula.get_phi_and_lemmas(phi, tlemmas)
 
-        # FIND QVARS
-        self.qvars = find_qvars(
-            phi,
-            phi_and_lemmas,
-            computation_logger=computation_logger[self.structure_name],
-        )
-
-        # # THESE ATOMS SHOULD ALREADY BE NORMALIZED
-        # # SINCE THEY COME FROM A NORMALIZED FORMULA
-        # atoms = get_atoms(phi_and_lemmas)
-
-        # # CREATING VARIABLE MAPPING
-        # self.abstraction = self._compute_mapping(
-        #     atoms, computation_logger[self.structure_name]
-        # )
-        # self.refinement = {v: k for k, v in self.abstraction.items()}
-
         # Compile to d-DNNF
         if sat_result == SAT:
             d4 = D4Compiler()
             self.phi_ddnnf, _, _ = d4.compile_dDNNF(
                 phi=phi_and_lemmas,
-                sat_result=sat_result,
-                back_to_fnode=True
+                back_to_fnode=True,
             )
 
             if out_path is not None:
