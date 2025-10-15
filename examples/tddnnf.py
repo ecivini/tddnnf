@@ -1,0 +1,30 @@
+from theorydd.tddnnf.theory_ddnnf import TheoryDDNNF
+from pysmt.shortcuts import read_smtlib
+
+EXAMPLE_CODE = "05"
+
+def main():
+    # BUILD YOUR T-FORMULA FROM THE PYSMT LIBRARY
+    phi = read_smtlib(f"data/{EXAMPLE_CODE}/test.smt2")
+
+    logger = {}
+
+    # BUILD YOUR DD WITH THE CONSTRUCTOR
+    ddnnf = TheoryDDNNF(
+        phi,
+        computation_logger=logger,
+        base_out_path=f"data/{EXAMPLE_CODE}"
+    )
+
+    # USE YOUR DD
+    print("PHI:", phi)
+
+    print("d-DDNF PHI:", ddnnf.phi_ddnnf)
+
+
+    # CHECK YOUR LOGGER
+    print(logger)
+
+
+if __name__ == "__main__":
+    main()

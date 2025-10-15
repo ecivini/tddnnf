@@ -1,6 +1,7 @@
 from typing import Dict, Tuple, List
 import time
 import logging
+import os
 
 from theorydd.solvers.mathsat_total import MathSATTotalEnumerator
 from theorydd.ddnnf.d4_compiler import D4Compiler
@@ -20,7 +21,7 @@ class TheoryDDNNF():
         self, 
         phi: FNode, 
         solver: MathSATTotalEnumerator | None = None,
-        out_path: str | None = None,
+        base_out_path: str | None = None,
         tlemmas: List[FNode] | None = None,
         load_lemmas: str | None = None,
         sat_result: bool | None = None,
@@ -66,12 +67,14 @@ class TheoryDDNNF():
             self.phi_ddnnf, _, _ = d4.compile_dDNNF(
                 phi=phi_and_lemmas,
                 back_to_fnode=True,
-                computation_logger=computation_logger[self.structure_name]
+                computation_logger=computation_logger[self.structure_name],
+                save_path=base_out_path
             )
 
-            if out_path is not None:
+            if base_out_path is not None:
                 # Store the d-DNNF to a file
-                write_smtlib(self.phi_ddnnf, out_path)
+                tddnf_out_path = os.path.join(base_out_path, "tddnnf.smt2")
+                write_smtlib(self.phi_ddnnf, tddnf_out_path)
 
 
     # Taken From theory_dd.py

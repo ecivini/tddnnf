@@ -319,7 +319,7 @@ class D4Compiler(DDNNFCompiler):
             tlemmas (List[FNode] | None) = None -> a list of theory lemmas to be added to the formula
             save_path (str | None) = None -> the path where dDNNF data will be saved.
                 If it is set to None a random temporary folder starting with temp_ will be created
-                and deleted once the comèputation ends
+                and deleted once the computation ends
             back_to_fnode (bool) = True -> set it to False to avoid the final pysmt translation
             sat_result: (bool | None) = None -> the result of the SAT check on the formula
             quantify_tseitsin (bool) = False -> set it to True to quantify over the tseitsin variables
