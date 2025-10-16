@@ -386,7 +386,7 @@ class D4Compiler(DDNNFCompiler):
         if timeout > 0:
             timeout_string = f"timeout {timeout}s "
         result = os.system(
-            f"{timeout_string}{_D4_COMMAND} -dDNNF {tmp_folder}/dimacs.cnf -out={tmp_folder}/compilation_output.nnf > /dev/null"
+            f"{timeout_string}{_D4_COMMAND} -i {tmp_folder}/dimacs.cnf --dump-file {tmp_folder}/compilation_output.nnf > /dev/null"
         )
         if result != 0:
             if save_path is None:

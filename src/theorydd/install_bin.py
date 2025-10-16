@@ -17,7 +17,9 @@ class InstallException(Exception):
 C2D_SOURCE = "http://reasoning.cs.ucla.edu/c2d/fetchme.php"
 C2D_DOWNLOAD_ZIP = r"Linux%20i386"
 
-D4_REPO = "https://github.com/crillab/d4"
+D4_REPO = "https://github.com/crillab/d4v2"
+LIBPATOH_DOWNLOAD_TAR = "patoh-Linux-x86_64.tar.gz"
+LIBPATOH_DOWNLOAD_URL = f"https://faculty.cc.gatech.edu/~umit/PaToH/{LIBPATOH_DOWNLOAD_TAR}"
 
 TABULAR_REPO = "https://github.com/giuspek/tabularAllSMT"
 
@@ -97,17 +99,24 @@ def setup_d4(install_path: str) -> None:
     # clone d4 repo
     repo_path = install_path + "/repo"
     clone_repo(D4_REPO, repo_path)
+    os.chdir(repo_path)
+
+    # manually install libpatoh.a 
+    # tracking issue: https://github.com/crillab/d4v2/issues/1
+    libpatoh_install_path = os.path.join(repo_path, "3rdParty", "patoh")
+    setup_libpatoh(repo_path, libpatoh_install_path)
 
     print("Compiling D4...")
-    # cd into repo
-    os.chdir(repo_path)
+    # cd into repo/demo/compiler
+    compiler_path = os.path.join(repo_path, "demo", "compiler")
+    os.chdir(compiler_path)
     # compile with make
-    result = os.system("make -j8")
+    result = os.system("./build.sh")
     if result != 0:
         raise InstallException("Failed to compile the D4 compiler!")
 
     # copy binary outside of repo folder
-    os.system(f"cp {repo_path}/d4 {install_path}/d4.bin")
+    os.system(f"cp {repo_path}/demo/compiler/build/compiler {install_path}/d4.bin")
 
     # make binary executable
     os.chmod(install_path + "/d4.bin", stat.S_IXUSR)
@@ -117,6 +126,33 @@ def setup_d4(install_path: str) -> None:
 
     # go back to old working directory
     os.chdir(old_working_directory)
+
+
+def setup_libpatoh(download_path: str, install_path: str) -> None:
+    """
+    Installs libpatoh.a in the provided directory
+    """
+    print("Downloading libpatoh...")
+
+    libpatoh_tar_download_path = os.path.join(download_path, LIBPATOH_DOWNLOAD_TAR)
+    libpatoh_extracted_path = os.path.join(download_path, "tmp_libpatoh")
+    libpatoh_lib_path = os.path.join(libpatoh_extracted_path, "build", "Linux-x86_64", "libpatoh.a")
+
+    download_file(LIBPATOH_DOWNLOAD_URL, libpatoh_tar_download_path)
+
+    # unzip libpatoh
+    if not os.path.exists(libpatoh_extracted_path):
+        os.mkdir(libpatoh_extracted_path)
+    result = os.system(f"tar -xvzf {libpatoh_tar_download_path} -C tmp_libpatoh")
+    if result != 0:
+        raise InstallException("Failed to unzip libpatoh")
+    
+    # copy libpatoh files into d4 repo
+    os.system(f"cp {libpatoh_lib_path} {install_path}/libpatoh.a")
+
+    # remove files and folders
+    os.system(f"rm {download_path}/{LIBPATOH_DOWNLOAD_TAR}")
+    os.system(f"rm -r {libpatoh_extracted_path}")
 
 
 def setup_tabular(install_path: str) -> None:
@@ -157,6 +193,12 @@ def clone_repo(repo_url: str, repo_path: str) -> None:
         os.system("rm -rdf --interactive=never " + repo_path)
     # clone repo
     Repo.clone_from(repo_url, repo_path)
+
+def download_file(url: str, output_path: str) -> None:
+    """Downloads a file from a URL to the specified output path"""
+    result = os.system(f"curl -L {url} --output {output_path}")
+    if result != 0:
+        raise InstallException(f"Failed to download file from {url}")
 
 def create_binary_folder(binary_path: str) -> None:
     """Creates the binary folder if it doesn't exist"""
