@@ -57,27 +57,27 @@ class DDNNFCompiler(ABC):
         """
         raise NotImplementedError()
 
-    @abstractmethod
-    def from_smtlib_to_dimacs_file(
-        self,
-        phi: FNode,
-        dimacs_file: str,
-        tlemmas: List[FNode] | None = None,
-        sat_result: bool | None = None,
-        quantify_tseitsin: bool = False,
-        do_not_quantify: bool = False,
-    ) -> None:
-        """convert a smtlib formula to a dimacs file that can be read from a dDNNF compiler
+    # @abstractmethod
+    # def from_smtlib_to_dimacs_file(
+    #     self,
+    #     phi: FNode,
+    #     dimacs_file: str,
+    #     tlemmas: List[FNode] | None = None,
+    #     sat_result: bool | None = None,
+    #     quantify_tseitsin: bool = False,
+    #     do_not_quantify: bool = False,
+    # ) -> None:
+    #     """convert a smtlib formula to a dimacs file that can be read from a dDNNF compiler
 
-        Args:
-            phi (FNode) -> the formula to be converted
-            dimacs_file (str) -> the path to the file where the dimacs output need to be saved
-            tlemmas (List[FNode] | None) = None -> a list of theory lemmas to be added to the formula
-            sat_result (bool | None) = None -> the result of the SAT check on the formula
-            quantify_tseitsin (bool) = False -> set it to True to quantify the tseitsin atoms
-            do_not_quantify (bool) = False -> set it to True to avoid quantifying the atoms
-        """
-        raise NotImplementedError()
+    #     Args:
+    #         phi (FNode) -> the formula to be converted
+    #         dimacs_file (str) -> the path to the file where the dimacs output need to be saved
+    #         tlemmas (List[FNode] | None) = None -> a list of theory lemmas to be added to the formula
+    #         sat_result (bool | None) = None -> the result of the SAT check on the formula
+    #         quantify_tseitsin (bool) = False -> set it to True to quantify the tseitsin atoms
+    #         do_not_quantify (bool) = False -> set it to True to avoid quantifying the atoms
+    #     """
+    #     raise NotImplementedError()
 
     @abstractmethod
     def from_nnf_to_pysmt(self, nnf_file: str) -> Tuple[FNode, int, int]:
@@ -113,62 +113,62 @@ class DDNNFCompiler(ABC):
         phi = self.from_nnf_to_pysmt(nnf_file)
         save_phi(phi, smtlib_file)
 
-    def write_dimacs_true(self, dimacs_file: str) -> None:
-        """writes the equivalent of a valid formula in a dimacs file"""
-        with open(dimacs_file, "w", encoding="utf8") as dimacs_out:
-            dimacs_out.write("p cnf 1 1\n1 -1 0\n")
+    # def write_dimacs_true(self, dimacs_file: str) -> None:
+    #     """writes the equivalent of a valid formula in a dimacs file"""
+    #     with open(dimacs_file, "w", encoding="utf8") as dimacs_out:
+    #         dimacs_out.write("p cnf 1 1\n1 -1 0\n")
 
-    def write_dimacs_false(self, dimacs_file: str) -> None:
-        """writes the equivalent of a unsatisfiable formula in a dimacs file"""
-        with open(dimacs_file, "w", encoding="utf8") as dimacs_out:
-            dimacs_out.write("p cnf 2 2\n1 0\n-1 0\n")
+    # def write_dimacs_false(self, dimacs_file: str) -> None:
+    #     """writes the equivalent of a unsatisfiable formula in a dimacs file"""
+    #     with open(dimacs_file, "w", encoding="utf8") as dimacs_out:
+    #         dimacs_out.write("p cnf 2 2\n1 0\n-1 0\n")
 
     def _clean_tmp_folder(self, tmp_folder: str) -> None:
         """cleans the tmp folder"""
         if os.path.exists(tmp_folder):
             os.system(f"rm -rd {tmp_folder}")
 
-    def write_dimacs(
-        self,
-        dimacs_file: str,
-        phi_cnf: FNode,
-        important_atoms_labels: List[int] | None = None,
-    ) -> None:
-        """writes the equivalent of a formula in a dimacs file"""
-        total_variables = len(self.abstraction.keys())
-        clauses: List[FNode] = phi_cnf.args()
-        total_clauses = len(clauses)
-        with open(dimacs_file, "w", encoding="utf8") as dimacs_out:
-            # first line
-            dimacs_out.write(f"p cnf {total_variables} {total_clauses}\n")
-            # second line
-            if important_atoms_labels is not None:
-                line = "c p show "
-                for atom in important_atoms_labels:
-                    line += f"{atom} "
-                line += "0\n"
-                dimacs_out.write(line)
-            # clause lines
-            for clause in clauses:
-                if clause.is_or():
-                    literals: List[FNode] = clause.args()
-                    translated_literals: List[int] = []
-                    for literal in literals:
-                        if literal.is_not():
-                            negated_literal: FNode = literal.arg(0)
-                            translated_literals.append(
-                                str(self.abstraction[negated_literal] * -1)
-                            )
-                        else:
-                            translated_literals.append(str(self.abstraction[literal]))
-                    line = " ".join(translated_literals)
-                elif clause.is_not():
-                    negated_literal: FNode = clause.arg(0)
-                    line = str(self.abstraction[negated_literal] * -1)
-                else:
-                    line = str(self.abstraction[clause])
-                dimacs_out.write(line)
-                dimacs_out.write(" 0\n")
+    # def write_dimacs(
+    #     self,
+    #     dimacs_file: str,
+    #     phi_cnf: FNode,
+    #     important_atoms_labels: List[int] | None = None,
+    # ) -> None:
+    #     """writes the equivalent of a formula in a dimacs file"""
+    #     total_variables = len(self.abstraction.keys())
+    #     clauses: List[FNode] = phi_cnf.args()
+    #     total_clauses = len(clauses)
+    #     with open(dimacs_file, "w", encoding="utf8") as dimacs_out:
+    #         # first line
+    #         dimacs_out.write(f"p cnf {total_variables} {total_clauses}\n")
+    #         # second line
+    #         if important_atoms_labels is not None:
+    #             line = "c p show "
+    #             for atom in important_atoms_labels:
+    #                 line += f"{atom} "
+    #             line += "0\n"
+    #             dimacs_out.write(line)
+    #         # clause lines
+    #         for clause in clauses:
+    #             if clause.is_or():
+    #                 literals: List[FNode] = clause.args()
+    #                 translated_literals: List[int] = []
+    #                 for literal in literals:
+    #                     if literal.is_not():
+    #                         negated_literal: FNode = literal.arg(0)
+    #                         translated_literals.append(
+    #                             str(self.abstraction[negated_literal] * -1)
+    #                         )
+    #                     else:
+    #                         translated_literals.append(str(self.abstraction[literal]))
+    #                 line = " ".join(translated_literals)
+    #             elif clause.is_not():
+    #                 negated_literal: FNode = clause.arg(0)
+    #                 line = str(self.abstraction[negated_literal] * -1)
+    #             else:
+    #                 line = str(self.abstraction[clause])
+    #             dimacs_out.write(line)
+    #             dimacs_out.write(" 0\n")
 
     def _choose_tmp_folder(self, save_path: str | None = None) -> str:
         """choose a temporary folder name"""

@@ -15,6 +15,7 @@ from pysmt.shortcuts import (
     Not,
 )
 from pysmt.fnode import FNode
+from pysmt.walkers import DagWalker
 from allsat_cnf.label_cnfizer import LabelCNFizer
 from theorydd.formula import (
     save_refinement,
@@ -124,52 +125,43 @@ class D4Compiler(DDNNFCompiler):
         super().__init__()
         self.logger = logging.getLogger("d4_ddnnf_compiler")
 
-    def from_smtlib_to_dimacs_file(
+    def from_pysmt_to_bcs12(
         self,
         phi: FNode,
-        dimacs_file: str,
+        bcs12_out_file_path: str,
         tlemmas: List[FNode] | None = None,
-        sat_result: bool | None = None,
-        quantify_tseitsin: bool = False,
         do_not_quantify: bool = False,
     ) -> None:
         """
-        translates an SMT formula in DIMACS format and saves it on file.
-        All fresh variables are saved inside quantification_file.
-        The mapping use to translate the formula is then returned.
+        Parses a pysmt formula and saves it in bcs12 format.
+        Reference: https://github.com/crillab/d4v2?tab=readme-ov-file#1-circuit-format
 
         Args:
             phi (FNode) -> the input formula
-            dimacs_file (str) -> the path to the file where the dimacs output need to be saved
+            bcs12_out_file_path (str) -> the path to the file where the bcs12 output need to be saved
             tlemmas (List[FNode] | None) = None -> a list of theory lemmas to be added to the formula
-            sat_result (bool | None) = None -> the result of the SAT check on the formula
-            quantify_tseitsin (bool) = False -> set it to True to quantify over the tseitsin variables
-                during dDNNF compilation
-            do_not_quantify (bool) = False -> set it to True to avoid quantifying over any fresh variable
         """
         phi_atoms: frozenset = get_atoms(phi)
         if tlemmas is not None:
             phi_and_lemmas = get_phi_and_lemmas(phi, tlemmas)
         else:
             phi_and_lemmas = phi
+
         phi_and_lemmas = get_normalized(
             phi_and_lemmas, self.normalizer_solver.get_converter()
         )
-        phi_cnf: FNode = LabelCNFizer().convert_as_formula(phi_and_lemmas)
-        phi_cnf_atoms: frozenset = get_atoms(phi_cnf)
+
         if do_not_quantify:
-            fresh_atoms: frozenset = frozenset()
-        elif not quantify_tseitsin:
-            phi_and_lemmas_atoms: frozenset = get_atoms(phi_and_lemmas)
-            fresh_atoms = frozenset(phi_and_lemmas_atoms.difference(phi_atoms))
+            fresh_atoms:Set[FNode] = frozenset()
         else:
-            fresh_atoms: Set[FNode] = frozenset(phi_cnf_atoms.difference(phi_atoms))
+            fresh_atoms: Set[FNode] = frozenset(phi_atoms)
+
         important_atoms_labels: List[int] = []
 
         # create mapping
         count = 1
         self.abstraction = {}
-        for atom in phi_cnf_atoms:
+        for atom in phi_atoms:
             if atom not in fresh_atoms:
                 important_atoms_labels.append(count)
             self.abstraction[atom] = count
@@ -178,18 +170,96 @@ class D4Compiler(DDNNFCompiler):
         self.refinement = {v: k for k, v in self.abstraction.items()}
         self.important_atoms_labels = important_atoms_labels
 
-        # check if formula is top
-        if phi_cnf.is_true():
-            self.write_dimacs_true(dimacs_file)
-            return
+        # map nodes to names for gates and intermediates
+        visited = {}
+        gate_counter = 0
+        lines = []
 
-        # check if formula is bottom
-        if phi_cnf.is_false() or sat_result == UNSAT:
-            self.write_dimacs_false(dimacs_file)
-            return
+        def traverse(node):
+            nonlocal gate_counter
 
-        # CONVERTNG IN DIMACS FORMAT AND SAVING ON FILE
-        self.write_dimacs(dimacs_file, phi_cnf, important_atoms_labels)
+            if node in visited:
+                return visited[node]
+
+            if node.is_symbol() or node in phi_atoms:
+                name = f"v{str(self.abstraction[node])}"
+                visited[node] = name
+                return name
+
+            # BC-S1.2 does not specified a specific term for true, so we crate
+            # a gate that always evaluates to true
+            elif node.is_true():
+                gate_counter += 1
+                name = f"g{gate_counter}"
+                visited[node] = name
+                lines.append(f"G {name} := O v1 -v1")
+                return name
+
+            # BC-S1.2 does not specified a specific term for false, so we crate
+            # a gate that always evaluates to false
+            elif node.is_false():
+                gate_counter += 1
+                name = f"g{gate_counter}"
+                visited[node] = name
+                lines.append(f"G {name} := A v1 -v1") 
+                return name
+
+            elif node.is_not():
+                c = node.arg(0)
+                cname = traverse(c)
+                return f"-{cname}"
+
+            elif node.is_and():
+                child_names = [traverse(c) for c in node.args()]
+                gate_counter += 1
+                name = f"g{gate_counter}"
+                visited[node] = name
+                lines.append(f"G {name} := A " + " ".join(child_names))
+                return name
+
+            elif node.is_or():
+                child_names = [traverse(c) for c in node.args()]
+                gate_counter += 1
+                name = f"g{gate_counter}"
+                visited[node] = name
+                lines.append(f"G {name} := O " + " ".join(child_names))
+                return name
+            
+            elif node.is_implies():
+                a = node.arg(0)
+                b = node.arg(1)
+                not_a = Not(a)
+                or_node = Or(not_a, b)
+                return traverse(or_node)
+        
+            elif node.is_iff():
+                a = node.arg(0)
+                b = node.arg(1)
+                a_implies_b = Or(Not(a), b)
+                b_implies_a = Or(Not(b), a)
+                and_node = And(a_implies_b, b_implies_a)
+                return traverse(and_node)
+
+            raise NotImplementedError(f"Unsupported node: {node}")
+
+        # Perform traversal
+        root = traverse(phi_and_lemmas)
+
+        # Now write file
+        with open(bcs12_out_file_path, "w") as f:
+            f.write("c BC-S1.2\n")
+            # Input variable declarations
+            for v in phi_atoms:
+                name = visited[v]
+                f.write(f"I {name}\n")
+
+            # Gate definitions
+            for ln in lines:
+                f.write(ln + "\n")
+
+            # Final target
+            f.write(f"T {root}\n")
+
 
     def from_nnf_to_pysmt(self, nnf_file: str) -> Tuple[FNode, int, int]:
         """
@@ -344,24 +414,22 @@ class D4Compiler(DDNNFCompiler):
         # choose temporary folder
         tmp_folder = self._choose_tmp_folder(save_path)
 
-        # translate to CNF DIMACS and get mapping used for translation
+        # translate to BC-S1.2 and get mapping used for translation
         if not os.path.exists(tmp_folder):
             os.mkdir(tmp_folder)
         start_time = time.time()
-        self.logger.info("Translating to DIMACS...")
+        self.logger.info("Translating to BC-S1.2...")
         phi = get_normalized(phi, self.normalizer_solver.get_converter())
-        self.from_smtlib_to_dimacs_file(
+        self.from_pysmt_to_bcs12(
             phi,
-            f"{tmp_folder}/dimacs.cnf",
+            f"{tmp_folder}/circuit.bc",
             tlemmas,
-            sat_result=sat_result,
-            quantify_tseitsin=quantify_tseitsin,
             do_not_quantify=do_not_quantify,
         )
         elapsed_time = time.time() - start_time
-        computation_logger["DIMACS translation time"] = elapsed_time
+        computation_logger["BC-S1.2 translation time"] = elapsed_time
         self.logger.info(
-            "DIMACS translation completed in %s seconds", str(elapsed_time)
+            "BC-S1.2 translation completed in %s seconds", str(elapsed_time)
         )
 
         # save mapping for refinement
@@ -386,7 +454,7 @@ class D4Compiler(DDNNFCompiler):
         if timeout > 0:
             timeout_string = f"timeout {timeout}s "
         result = os.system(
-            f"{timeout_string}{_D4_COMMAND} -i {tmp_folder}/dimacs.cnf --dump-file {tmp_folder}/compilation_output.nnf > /dev/null"
+            f"{timeout_string}{_D4_COMMAND} -i {tmp_folder}/circuit.bc --input-type circuit --dump-file {tmp_folder}/compilation_output.nnf > /dev/null"
         )
         if result != 0:
             if save_path is None:
@@ -405,9 +473,6 @@ class D4Compiler(DDNNFCompiler):
                 f"{tmp_folder}/compilation_output.nnf"
             )
             return None, nodes, edges
-
-        # loading saved mapping
-        # reverse_mapping = load_mapping(f"{tmp_folder}/mapping/mapping.json")
 
         # translate to pysmt
         start_time = time.time()
