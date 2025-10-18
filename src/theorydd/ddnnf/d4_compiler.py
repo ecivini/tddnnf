@@ -23,6 +23,7 @@ from theorydd.formula import (
     get_phi_and_lemmas,
     get_normalized,
 )
+from theorydd.walkers.walker_bcs12 import BCS12Walker
 from theorydd.constants import (
     UNSAT,
     D4_COMMAND as _D4_COMMAND,
@@ -170,91 +171,20 @@ class D4Compiler(DDNNFCompiler):
         self.refinement = {v: k for k, v in self.abstraction.items()}
         self.important_atoms_labels = important_atoms_labels
 
-        # map nodes to names for gates and intermediates
-        visited = {}
-        gate_counter = 0
-        lines = []
-
-        def traverse(node):
-            nonlocal gate_counter
-
-            if node in visited:
-                return visited[node]
-
-            if node.is_symbol() or node in phi_atoms:
-                name = f"v{str(self.abstraction[node])}"
-                visited[node] = name
-                return name
-
-            # BC-S1.2 does not specified a specific term for true, so we crate
-            # a gate that always evaluates to true
-            elif node.is_true():
-                gate_counter += 1
-                name = f"g{gate_counter}"
-                visited[node] = name
-                lines.append(f"G {name} := O v1 -v1")
-                return name
-
-            # BC-S1.2 does not specified a specific term for false, so we crate
-            # a gate that always evaluates to false
-            elif node.is_false():
-                gate_counter += 1
-                name = f"g{gate_counter}"
-                visited[node] = name
-                lines.append(f"G {name} := A v1 -v1") 
-                return name
-
-            elif node.is_not():
-                c = node.arg(0)
-                cname = traverse(c)
-                return f"-{cname}"
-
-            elif node.is_and():
-                child_names = [traverse(c) for c in node.args()]
-                gate_counter += 1
-                name = f"g{gate_counter}"
-                visited[node] = name
-                lines.append(f"G {name} := A " + " ".join(child_names))
-                return name
-
-            elif node.is_or():
-                child_names = [traverse(c) for c in node.args()]
-                gate_counter += 1
-                name = f"g{gate_counter}"
-                visited[node] = name
-                lines.append(f"G {name} := O " + " ".join(child_names))
-                return name
-            
-            elif node.is_implies():
-                a = node.arg(0)
-                b = node.arg(1)
-                not_a = Not(a)
-                or_node = Or(not_a, b)
-                return traverse(or_node)
-        
-            elif node.is_iff():
-                a = node.arg(0)
-                b = node.arg(1)
-                a_implies_b = Or(Not(a), b)
-                b_implies_a = Or(Not(b), a)
-                and_node = And(a_implies_b, b_implies_a)
-                return traverse(and_node)
-
-            raise NotImplementedError(f"Unsupported node: {node}")
-
-        # Perform traversal
-        root = traverse(phi_and_lemmas)
+        # Use the BCS12Walker to traverse the formula
+        walker = BCS12Walker(self.abstraction, phi_atoms)
+        root = walker.walk(phi_and_lemmas)
 
         # Now write file
         with open(bcs12_out_file_path, "w") as f:
             f.write("c BC-S1.2\n")
             # Input variable declarations
             for v in phi_atoms:
-                name = visited[v]
+                name = f"v{self.abstraction[v]}"
                 f.write(f"I {name}\n")
 
             # Gate definitions
-            for ln in lines:
+            for ln in walker.gate_lines:
                 f.write(ln + "\n")
 
             # Final target
