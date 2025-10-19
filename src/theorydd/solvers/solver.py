@@ -19,7 +19,7 @@ class SMTEnumerator(ABC):
         pass
 
     @abstractmethod
-    def check_all_sat(self, phi: FNode, boolean_mapping: Dict | None = None) -> bool:
+    def check_all_sat(self, phi: FNode, boolean_mapping: Dict | None = None, parallel: bool = False) -> bool:
         """check T-satisfiability of a formula"""
         pass
 

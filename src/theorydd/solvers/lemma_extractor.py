@@ -15,6 +15,7 @@ def extract(
     enumerate_true: bool = False,
     use_boolean_mapping: bool = True,
     computation_logger: Dict = None,
+    parallel: bool = False
 ) -> Tuple[bool, List[FNode], Dict[FNode,FNode] | None]:
     """extract lemmas from a SMT-formula
 
@@ -43,7 +44,7 @@ def extract(
     if enumerate_true:
         smt_result = smt_solver.enumerate_true(phi)
     else:
-        smt_result = smt_solver.check_all_sat(phi, boolean_mapping)
+        smt_result = smt_solver.check_all_sat(phi, boolean_mapping, parallel=parallel)
     elapsed_time = time.time() - start_time
     logger.info("Computed AllSMT in %s seconds", str(elapsed_time))
     computation_logger["All-SMT computation time"] = elapsed_time

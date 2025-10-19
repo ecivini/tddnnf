@@ -44,13 +44,14 @@ class MathSATPartialEnumerator(SMTEnumerator):
         self._atoms = []
 
     def check_all_sat(
-        self, phi: FNode, boolean_mapping: Dict[FNode, FNode] | None = None
+        self, phi: FNode, boolean_mapping: Dict[FNode, FNode] | None = None, parallel: bool = False
     ) -> bool:
         """Computes All-SMT for the SMT-formula phi generating partial assignments and using Tsetsin CNF-ization
 
         Args:
             phi (FNode): a pysmt formula
             boolean_mapping (Dict[FNode, FNode]) [None]: unused, for compatibility with SMTSolver
+            parallel (bool) [False]: ignored
         """
         if boolean_mapping is not None:
             boolean_mapping = None

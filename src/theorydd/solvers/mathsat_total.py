@@ -40,7 +40,7 @@ class MathSATTotalEnumerator(SMTEnumerator):
         self._atoms = []
 
     def check_all_sat(
-        self, phi: FNode, boolean_mapping: Dict[FNode, FNode] | None = None
+        self, phi: FNode, boolean_mapping: Dict[FNode, FNode] | None = None, parallel: bool = False
     ) -> bool:
         """Computes All-SMT for the SMT-formula phi using total assignments
 
@@ -50,6 +50,7 @@ class MathSATTotalEnumerator(SMTEnumerator):
                 each T-atom (values) a fresh boolean variable (keys). If set, the enumeration
                 happens only on these fresh boolean variables and the original boolean variables
                 of the formula
+            parallel (bool) [False]: ignored
         """
         self._last_phi = phi
         self._tlemmas = []

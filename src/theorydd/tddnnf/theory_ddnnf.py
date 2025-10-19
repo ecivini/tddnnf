@@ -3,7 +3,7 @@ import time
 import logging
 import os
 
-from theorydd.solvers.mathsat_total import MathSATTotalEnumerator
+from theorydd.solvers.mathsat_partial_extended import MathSATExtendedPartialEnumerator
 from theorydd.ddnnf.d4_compiler import D4Compiler
 from pysmt.fnode import FNode
 from pysmt.shortcuts import write_smtlib
@@ -20,12 +20,13 @@ class TheoryDDNNF():
     def __init__(
         self, 
         phi: FNode, 
-        solver: MathSATTotalEnumerator | None = None,
+        solver: MathSATExtendedPartialEnumerator | None = None,
         base_out_path: str | None = None,
         tlemmas: List[FNode] | None = None,
         load_lemmas: str | None = None,
         sat_result: bool | None = None,
-        computation_logger: Dict | None = None
+        computation_logger: Dict | None = None,
+        parallel_allsmt: bool = False
     ) -> None:
         if not hasattr(self, "structure_name"):
             self.structure_name = "T-DDNNF"
@@ -34,7 +35,7 @@ class TheoryDDNNF():
             self.logger = logging.getLogger("theory_ddnnf")
 
         if solver is None:
-            solver = MathSATTotalEnumerator()
+            solver = MathSATExtendedPartialEnumerator()
     
         if computation_logger is None:
             computation_logger = {}
@@ -54,6 +55,7 @@ class TheoryDDNNF():
             load_lemmas,
             sat_result,
             computation_logger[self.structure_name],
+            parallel=parallel_allsmt
         )
         self.sat_result = sat_result
         self.tlemmas = tlemmas
@@ -101,6 +103,7 @@ class TheoryDDNNF():
         load_lemmas: str | None,
         sat_result: bool | None,
         computation_logger: Dict,
+        parallel: bool = False
     ) -> Tuple[List[FNode], bool | None]:
         """loads the lemmas"""
         # LOADING LEMMAS
@@ -117,6 +120,7 @@ class TheoryDDNNF():
                 phi,
                 smt_solver,
                 computation_logger=computation_logger,
+                parallel=parallel
             )
         tlemmas = list(
             map(

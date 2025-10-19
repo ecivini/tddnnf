@@ -7,6 +7,8 @@ import mathsat
 from allsat_cnf.polarity_cnfizer import PolarityCNFizer
 from theorydd.constants import SAT, UNSAT
 from theorydd.solvers.solver import SMTEnumerator
+import multiprocessing
+import os
 
 
 def _allsat_callback(model, converter, models):
@@ -14,6 +16,43 @@ def _allsat_callback(model, converter, models):
     py_model = {converter.back(v) for v in model}
     models.append(py_model)
     return 1
+
+
+def _parallel_worker(args: tuple) -> tuple:
+    """Worker function for parallel all-smt extension
+    
+    Args:
+        args: tuple of (partial_model, phi, atoms, solver_options_dict_total, shared_lemmas)
+    
+    Returns:
+        tuple of (local_models, tlemmas_total)
+    """
+    partial_model, phi, atoms, solver_options_dict_total, shared_lemmas = args
+    
+    local_solver = Solver("msat", solver_options=solver_options_dict_total)
+    local_solver.add_assertion(phi)
+    local_solver.add_assertion(And(partial_model))
+    # Use current shared lemmas
+    local_solver.add_assertion(And(list(shared_lemmas)))
+    local_converter = local_solver.converter
+    local_models = []
+
+    mathsat.msat_all_sat(
+        local_solver.msat_env(),
+        [local_converter.convert(a) for a in atoms],
+        callback=lambda model: _allsat_callback(
+            model, local_converter, local_models
+        ),
+    )
+    tlemmas_total = [
+        local_converter.back(l)
+        for l in mathsat.msat_get_theory_lemmas(local_converter.msat_env())
+    ]
+    
+    # Update shared lemmas
+    shared_lemmas.extend(tlemmas_total)
+    
+    return local_models, tlemmas_total
 
 
 class MathSATExtendedPartialEnumerator(SMTEnumerator):
@@ -34,7 +73,7 @@ class MathSATExtendedPartialEnumerator(SMTEnumerator):
             "dpll.store_tlemmas": "true",  # - necessary to obtain t-lemmas
             "theory.la.split_rat_eq": "false",
         }
-        solver_options_dict_total = {
+        self.solver_options_dict_total = {
             "dpll.allsat_minimize_model": "false",  # - total truth assignments
             # "theory.pure_literal_filtering": "true",
             # "dpll.allsat_allow_duplicates": "false", # - to produce not necessarily disjoint truth assignments.
@@ -46,7 +85,7 @@ class MathSATExtendedPartialEnumerator(SMTEnumerator):
             "theory.la.split_rat_eq": "false",
         }
         self.solver = Solver("msat", solver_options=solver_options_dict)
-        self.solver_total = Solver("msat", solver_options=solver_options_dict_total)
+        self.solver_total = Solver("msat", solver_options=self.solver_options_dict_total)
         self._last_phi = None
         self._tlemmas = []
         self._models = []
@@ -55,13 +94,14 @@ class MathSATExtendedPartialEnumerator(SMTEnumerator):
         self._atoms = []
 
     def check_all_sat(
-        self, phi: FNode, boolean_mapping: Dict[FNode, FNode] | None = None
+        self, phi: FNode, boolean_mapping: Dict[FNode, FNode] | None = None, parallel: bool = False
     ) -> bool:
         """Computes All-SMT for the SMT-formula phi using partial assignment and Tsetsin CNF-ization
 
         Args:
             phi (FNode): a pysmt formula
             boolean_mapping (Dict[FNode, FNode]) [None]: unused, for compatibility with SMTSolver
+            parallel (bool) [False]: if True, parallelizes the computation of total truth assignments
         """
         if boolean_mapping is not None:
             boolean_mapping = None
@@ -96,34 +136,56 @@ class MathSATExtendedPartialEnumerator(SMTEnumerator):
             for l in mathsat.msat_get_theory_lemmas(self.solver.msat_env())
         ]
 
-        # phi_plus_lemmas = And(phi, *self._tlemmas)
-        # self.solver_total.add_assertion(phi_plus_lemmas)
-
         if len(partial_models) == 0:
             return UNSAT
 
         self.solver_total.add_assertion(phi)
         self._models = []
-        for m in partial_models:
-            self.solver_total.push()
-            self.solver_total.add_assertion(And(m))
-            # Theorylemmas added to solver total
-            self.solver_total.add_assertion(And(self._tlemmas))
-            models_total = []
-            mathsat.msat_all_sat(
-                self.solver_total.msat_env(),
-                [self._converter_total.convert(a) for a in self._atoms],
-                callback=lambda model: _allsat_callback(
-                    model, self._converter_total, models_total
-                ),
-            )
-            tlemmas_total = [
-                self._converter_total.back(l)
-                for l in mathsat.msat_get_theory_lemmas(self.solver_total.msat_env())
+        if not parallel:
+            for m in partial_models:
+                self.solver_total.push()
+                self.solver_total.add_assertion(And(m))
+                # Theorylemmas added to solver total
+                self.solver_total.add_assertion(And(self._tlemmas))
+                models_total = []
+                mathsat.msat_all_sat(
+                    self.solver_total.msat_env(),
+                    [self._converter_total.convert(a) for a in self._atoms],
+                    callback=lambda model: _allsat_callback(
+                        model, self._converter_total, models_total
+                    ),
+                )
+                tlemmas_total = [
+                    self._converter_total.back(l)
+                    for l in mathsat.msat_get_theory_lemmas(self.solver_total.msat_env())
+                ]
+                self._models += models_total
+                self._tlemmas += tlemmas_total
+                self.solver_total.pop()
+            
+        else:            
+            # Create shared list for lemmas that can be updated by workers
+            manager = multiprocessing.Manager()
+            shared_lemmas = manager.list(self._tlemmas)
+            
+            # Prepare arguments for each worker
+            worker_args = [
+                (m, phi, self._atoms, self.solver_options_dict_total, shared_lemmas)
+                for m in partial_models
             ]
-            self._models += models_total
-            self._tlemmas += tlemmas_total
-            self.solver_total.pop()
+
+            # Use a process pool to maintain constant number of workers
+            cpu_count = os.cpu_count()
+            max_processes = max(1, cpu_count - 1) if cpu_count and cpu_count > 1 else 1
+            
+            with multiprocessing.Pool(processes=max_processes) as pool:
+                # Use imap_unordered to process results as they complete
+                for models_batch, _ in pool.imap_unordered(_parallel_worker, worker_args):
+                    self._models.extend(models_batch)
+            
+            # Update instance lemmas with all collected lemmas
+            self._tlemmas = list(shared_lemmas)
+
         return SAT
 
     def get_theory_lemmas(self) -> List[FNode]:
