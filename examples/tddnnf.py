@@ -1,7 +1,7 @@
 from theorydd.tddnnf.theory_ddnnf import TheoryDDNNF
 from pysmt.shortcuts import read_smtlib
 
-EXAMPLE_CODE = "07"
+EXAMPLE_CODE = "05"
 
 def main():
     # BUILD YOUR T-FORMULA FROM THE PYSMT LIBRARY
