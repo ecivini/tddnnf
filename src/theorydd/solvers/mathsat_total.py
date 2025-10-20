@@ -40,7 +40,7 @@ class MathSATTotalEnumerator(SMTEnumerator):
         self._atoms = []
 
     def check_all_sat(
-        self, phi: FNode, boolean_mapping: Dict[FNode, FNode] | None = None, parallel: bool = False
+        self, phi: FNode, boolean_mapping: Dict[FNode, FNode] | None = None, parallel_procs: int = 1
     ) -> bool:
         """Computes All-SMT for the SMT-formula phi using total assignments
 

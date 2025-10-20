@@ -12,7 +12,7 @@ from theorydd import formula
 from theorydd.solvers.lemma_extractor import find_qvars, extract
 from theorydd.formula import get_atoms
 from theorydd.constants import SAT
-from theorydd.util._string_generator import SequentialStringGenerator
+import multiprocessing
 
 
 class TheoryDDNNF():
@@ -26,7 +26,7 @@ class TheoryDDNNF():
         load_lemmas: str | None = None,
         sat_result: bool | None = None,
         computation_logger: Dict | None = None,
-        parallel_allsmt: bool = False
+        parallel_allsmt_procs: int = 1
     ) -> None:
         if not hasattr(self, "structure_name"):
             self.structure_name = "T-DDNNF"
@@ -42,6 +42,11 @@ class TheoryDDNNF():
         if computation_logger.get(self.structure_name) is None:
             computation_logger[self.structure_name] = {}
 
+        if parallel_allsmt_procs < 1 or parallel_allsmt_procs > multiprocessing.cpu_count():
+            raise ValueError(
+                "parallel_allsmt_procs must be between 1 and the number of CPU cores"
+            )
+
         # NORMALIZE PHI
         phi = self._normalize_input(
             phi, solver, computation_logger[self.structure_name]
@@ -51,11 +56,11 @@ class TheoryDDNNF():
         tlemmas, sat_result = self._load_lemmas(
             phi,
             solver,
+            parallel_allsmt_procs,
             tlemmas,
             load_lemmas,
             sat_result,
             computation_logger[self.structure_name],
-            parallel=parallel_allsmt
         )
         self.sat_result = sat_result
         self.tlemmas = tlemmas
@@ -99,11 +104,11 @@ class TheoryDDNNF():
         self,
         phi: FNode,
         smt_solver: SMTEnumerator,
+        parallel_procs: int,
         tlemmas: List[FNode] | None,
         load_lemmas: str | None,
         sat_result: bool | None,
         computation_logger: Dict,
-        parallel: bool = False
     ) -> Tuple[List[FNode], bool | None]:
         """loads the lemmas"""
         # LOADING LEMMAS
@@ -120,7 +125,7 @@ class TheoryDDNNF():
                 phi,
                 smt_solver,
                 computation_logger=computation_logger,
-                parallel=parallel
+                parallel_procs=parallel_procs
             )
         tlemmas = list(
             map(
