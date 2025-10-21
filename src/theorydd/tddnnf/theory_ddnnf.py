@@ -127,11 +127,11 @@ class TheoryDDNNF():
                 computation_logger=computation_logger,
                 parallel_procs=parallel_procs
             )
-        tlemmas = list(
-            map(
-                lambda l: formula.get_normalized(l, smt_solver.get_converter()), tlemmas
-            )
-        )
+        # tlemmas = list(
+        #     map(
+        #         lambda l: formula.get_normalized(l, smt_solver.get_converter()), tlemmas
+        #     )
+        # )
         # BASICALLY PADDING TO AVOID POSSIBLE ISSUES
         while len(tlemmas) < 2:
             tlemmas.append(formula.top())

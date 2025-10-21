@@ -2,13 +2,15 @@
 
 from typing import List, Dict
 from pysmt.shortcuts import Solver, And
+from pysmt.parsing import parse
 from pysmt.fnode import FNode
 import mathsat
 from allsat_cnf.polarity_cnfizer import PolarityCNFizer
 from theorydd.constants import SAT, UNSAT
 from theorydd.solvers.solver import SMTEnumerator
 import multiprocessing
-import os
+import itertools
+from theorydd import formula
 
 
 def _allsat_callback(model, converter, models):
@@ -18,41 +20,49 @@ def _allsat_callback(model, converter, models):
     return 1
 
 
-def _parallel_worker(args: tuple) -> tuple:
+def _parallel_worker(args: tuple) -> list:
     """Worker function for parallel all-smt extension
     
     Args:
         args: tuple of (partial_model, phi, atoms, solver_options_dict_total, shared_lemmas)
     
     Returns:
-        tuple of (local_models, tlemmas_total)
+        tuple of local_models
     """
-    partial_model, phi, atoms, solver_options_dict_total, shared_lemmas = args
+    partial_models, phi, atoms, solver_options_dict_total, shared_lemmas = args
     
     local_solver = Solver("msat", solver_options=solver_options_dict_total)
     local_solver.add_assertion(phi)
-    local_solver.add_assertion(And(partial_model))
-    # Use current shared lemmas
-    local_solver.add_assertion(And(list(shared_lemmas)))
-    local_converter = local_solver.converter
-    local_models = []
+    total_models = []
 
-    mathsat.msat_all_sat(
-        local_solver.msat_env(),
-        [local_converter.convert(a) for a in atoms],
-        callback=lambda model: _allsat_callback(
-            model, local_converter, local_models
-        ),
-    )
-    tlemmas_total = [
-        local_converter.back(l)
-        for l in mathsat.msat_get_theory_lemmas(local_converter.msat_env())
-    ]
-    
-    # Update shared lemmas
-    shared_lemmas.extend(tlemmas_total)
-    
-    return local_models, tlemmas_total
+    for model in partial_models:
+        local_solver.push()
+        local_solver.add_assertion(And(model))
+        # Use current shared lemmas
+        local_solver.add_assertion(And(list(shared_lemmas)))
+        local_converter = local_solver.converter
+        local_models = []
+
+        mathsat.msat_all_sat(
+            local_solver.msat_env(),
+            [local_converter.convert(a) for a in atoms],
+            callback=lambda model: _allsat_callback(
+                model, local_converter, local_models
+            ),
+        )
+        
+        # Update shared lemmas
+        for lemma in mathsat.msat_get_theory_lemmas(local_converter.msat_env()):
+            parsed_lemma = local_converter.back(lemma)
+            normalized_lemma = formula.get_normalized(parsed_lemma, local_converter)
+            if normalized_lemma not in shared_lemmas:
+                shared_lemmas.append(normalized_lemma)
+
+        local_solver.pop()
+
+        total_models += local_models
+
+    return total_models
 
 
 class MathSATExtendedPartialEnumerator(SMTEnumerator):
@@ -156,7 +166,7 @@ class MathSATExtendedPartialEnumerator(SMTEnumerator):
                     ),
                 )
                 tlemmas_total = [
-                    self._converter_total.back(l)
+                    formula.get_normalized(self._converter_total.back(l), self._converter_total)
                     for l in mathsat.msat_get_theory_lemmas(self.solver_total.msat_env())
                 ]
                 self._models += models_total
@@ -169,15 +179,17 @@ class MathSATExtendedPartialEnumerator(SMTEnumerator):
             shared_lemmas = manager.list(self._tlemmas)
             
             # Prepare arguments for each worker
+            chunks_size = max(1, len(partial_models) // parallel_procs)
+            partial_models_chunks = itertools.batched(partial_models, chunks_size)
             worker_args = [
-                (m, phi, self._atoms, self.solver_options_dict_total, shared_lemmas)
-                for m in partial_models
+                (chunk, phi, self._atoms, self.solver_options_dict_total, shared_lemmas)
+                for chunk in partial_models_chunks
             ]
 
             # Use a process pool to maintain constant number of workers            
             with multiprocessing.Pool(processes=parallel_procs) as pool:
                 # Use imap_unordered to process results as they complete
-                for models_batch, _ in pool.imap_unordered(_parallel_worker, worker_args):
+                for models_batch in pool.imap_unordered(_parallel_worker, worker_args):
                     self._models.extend(models_batch)
             
             # Update instance lemmas with all collected lemmas

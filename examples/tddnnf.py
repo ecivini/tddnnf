@@ -1,7 +1,7 @@
 from theorydd.tddnnf.theory_ddnnf import TheoryDDNNF
 from pysmt.shortcuts import read_smtlib
 
-EXAMPLE_CODE = "05"
+EXAMPLE_CODE = "07"
 
 def main():
     # BUILD YOUR T-FORMULA FROM THE PYSMT LIBRARY
@@ -14,7 +14,7 @@ def main():
         phi,
         computation_logger=logger,
         base_out_path=f"data/{EXAMPLE_CODE}",
-        parallel_allsmt_procs=8
+        parallel_allsmt_procs=12
     )
 
     # USE YOUR t-d-DNNF
