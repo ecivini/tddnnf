@@ -1,17 +1,17 @@
 """this module handles interactions with the mathsat solver"""
+import itertools
+import multiprocessing
+from typing import Dict, List
 
-from typing import List, Dict
-from pysmt.shortcuts import Solver, And, get_env
-from pysmt.parsing import parse
-from pysmt.fnode import FNode
-from pysmt.environment import Environment
 import mathsat
 from allsat_cnf.polarity_cnfizer import PolarityCNFizer
+from pysmt.fnode import FNode
+from pysmt.formula import FormulaContextualizer
+from pysmt.shortcuts import And, Solver, get_env
+
 from theorydd.constants import SAT, UNSAT
 from theorydd.solvers.solver import SMTEnumerator
-import multiprocessing
-import itertools
-import time
+
 
 class SuspendTypeChecking(object):
     """Context to disable type-checking during formula creation."""
@@ -31,6 +31,23 @@ class SuspendTypeChecking(object):
         """Exiting the Context: Re-enable type-checking."""
         self.mgr._do_type_check = self.mgr._do_type_check_real
 
+class FormulaContextualizerWithNodeId(FormulaContextualizer):
+    """
+    Contextualizer that uses node_id to identify nodes.
+
+    In multiprocessing, PySMT nodes are copied between processes by reconstructing
+    their structure. This breaks PySMT's singleton property, and identical formulas
+    no longer share the same object instance.
+
+    ## Solution:
+    Reconstruct formulas using the process' formula manager (aka "contextualization").
+    But use node_id (instead of object identity) as the cache key! This ensures
+    identical nodes map to the same contextualized instance in the target process,
+    enabling efficient caching across processes.
+    """
+    def _get_key(self, formula, **kwargs):
+        return formula.node_id()
+
 def _allsat_callback(model, converter, models):
     """callback for all-sat"""
     py_model = {converter.back(v) for v in model}
@@ -47,7 +64,7 @@ def _parallel_worker(args: tuple) -> list:
     Returns:
         tuple of local_models
     """
-    partial_models, phi, atoms, solver_options_dict_total, shared_lemmas = args
+    idx, partial_models, phi, atoms, solver_options_dict_total, shared_lemmas = args
 
     local_solver = Solver("msat", solver_options=solver_options_dict_total)
     local_solver.add_assertion(phi)
@@ -57,7 +74,7 @@ def _parallel_worker(args: tuple) -> list:
         local_solver.push()
         local_solver.add_assertion(And(model))
         # Use current shared lemmas
-        local_solver.add_assertion(And(list(shared_lemmas)))
+        local_solver.add_assertion(And(itertools.chain(*shared_lemmas.values())))
         local_converter = local_solver.converter
         local_models = []
 
@@ -71,7 +88,7 @@ def _parallel_worker(args: tuple) -> list:
         
         # Update shared lemmas
         for lemma in mathsat.msat_get_theory_lemmas(local_converter.msat_env()):
-            shared_lemmas.append(local_converter.back(lemma))
+            shared_lemmas[idx].append(local_converter.back(lemma))
 
         local_solver.pop()
         total_models += local_models
@@ -190,14 +207,17 @@ class MathSATExtendedPartialEnumerator(SMTEnumerator):
         else:            
             # Create shared list for lemmas that can be updated by workers
             manager = multiprocessing.Manager()
-            shared_lemmas = manager.list(self._tlemmas)
+            shared_lemmas = manager.dict({
+                i: manager.list() for i in range(parallel_procs + 1)
+            })
+            shared_lemmas[0].extend(self._tlemmas)
             
             # Prepare arguments for each worker
             chunks_size = (len(partial_models) // parallel_procs) + 1
             partial_models_chunks = itertools.batched(partial_models, chunks_size)
             worker_args = [
-                (chunk, phi, self._atoms, self.solver_options_dict_total, shared_lemmas)
-                for chunk in partial_models_chunks
+                (i+1, chunk, phi, self._atoms, self.solver_options_dict_total, shared_lemmas)
+                for i, chunk in enumerate(partial_models_chunks)
             ]
 
             # Use a process pool to maintain constant number of workers            
@@ -205,15 +225,14 @@ class MathSATExtendedPartialEnumerator(SMTEnumerator):
                 # Use imap_unordered to process results as they complete
                 for models_batch in pool.imap_unordered(_parallel_worker, worker_args):
                     self._models.extend(models_batch)
-            
             # Update instance lemmas with all collected lemmas
-            start = time.time()
             with SuspendTypeChecking():
-                formula_manager = get_env().formula_manager
-                shared_lemmas = [formula_manager.normalize(l) for l in shared_lemmas]
-                time_diff = time.time() - start
-                print(f"IdentityDagWalker time: {time_diff} seconds")
-            self._tlemmas.extend(shared_lemmas)
+                shared_lemmas_ctx = []
+                for idx in range(1, parallel_procs + 1):
+                    ctx = FormulaContextualizerWithNodeId()
+                    worker_lemmas = list(shared_lemmas[idx])
+                    shared_lemmas_ctx.extend([ctx.walk(l) for l in worker_lemmas])
+            self._tlemmas.extend(shared_lemmas_ctx)
 
         return SAT
 
