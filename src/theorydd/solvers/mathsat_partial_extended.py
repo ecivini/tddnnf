@@ -1,17 +1,35 @@
 """this module handles interactions with the mathsat solver"""
 
 from typing import List, Dict
-from pysmt.shortcuts import Solver, And
+from pysmt.shortcuts import Solver, And, get_env
 from pysmt.parsing import parse
 from pysmt.fnode import FNode
+from pysmt.environment import Environment
 import mathsat
 from allsat_cnf.polarity_cnfizer import PolarityCNFizer
 from theorydd.constants import SAT, UNSAT
 from theorydd.solvers.solver import SMTEnumerator
 import multiprocessing
 import itertools
-from theorydd import formula
+import time
 
+class SuspendTypeChecking(object):
+    """Context to disable type-checking during formula creation."""
+
+    def __init__(self, env=None):
+        if env is None:
+            env = get_env()
+        self.env = env
+        self.mgr = env.formula_manager
+
+    def __enter__(self):
+        """Entering a Context: Disable type-checking."""
+        self.mgr._do_type_check = lambda x : x
+        return self.env
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Exiting the Context: Re-enable type-checking."""
+        self.mgr._do_type_check = self.mgr._do_type_check_real
 
 def _allsat_callback(model, converter, models):
     """callback for all-sat"""
@@ -30,7 +48,7 @@ def _parallel_worker(args: tuple) -> list:
         tuple of local_models
     """
     partial_models, phi, atoms, solver_options_dict_total, shared_lemmas = args
-    
+
     local_solver = Solver("msat", solver_options=solver_options_dict_total)
     local_solver.add_assertion(phi)
     total_models = []
@@ -53,13 +71,9 @@ def _parallel_worker(args: tuple) -> list:
         
         # Update shared lemmas
         for lemma in mathsat.msat_get_theory_lemmas(local_converter.msat_env()):
-            parsed_lemma = local_converter.back(lemma)
-            normalized_lemma = formula.get_normalized(parsed_lemma, local_converter)
-            if normalized_lemma not in shared_lemmas:
-                shared_lemmas.append(normalized_lemma)
+            shared_lemmas.append(local_converter.back(lemma))
 
         local_solver.pop()
-
         total_models += local_models
 
     return total_models
@@ -166,7 +180,7 @@ class MathSATExtendedPartialEnumerator(SMTEnumerator):
                     ),
                 )
                 tlemmas_total = [
-                    formula.get_normalized(self._converter_total.back(l), self._converter_total)
+                    self._converter_total.back(l)
                     for l in mathsat.msat_get_theory_lemmas(self.solver_total.msat_env())
                 ]
                 self._models += models_total
@@ -179,7 +193,7 @@ class MathSATExtendedPartialEnumerator(SMTEnumerator):
             shared_lemmas = manager.list(self._tlemmas)
             
             # Prepare arguments for each worker
-            chunks_size = max(1, len(partial_models) // parallel_procs)
+            chunks_size = (len(partial_models) // parallel_procs) + 1
             partial_models_chunks = itertools.batched(partial_models, chunks_size)
             worker_args = [
                 (chunk, phi, self._atoms, self.solver_options_dict_total, shared_lemmas)
@@ -193,7 +207,13 @@ class MathSATExtendedPartialEnumerator(SMTEnumerator):
                     self._models.extend(models_batch)
             
             # Update instance lemmas with all collected lemmas
-            self._tlemmas = list(shared_lemmas)
+            start = time.time()
+            with SuspendTypeChecking():
+                formula_manager = get_env().formula_manager
+                shared_lemmas = [formula_manager.normalize(l) for l in shared_lemmas]
+                time_diff = time.time() - start
+                print(f"IdentityDagWalker time: {time_diff} seconds")
+            self._tlemmas.extend(shared_lemmas)
 
         return SAT
 

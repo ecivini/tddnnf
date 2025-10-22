@@ -66,13 +66,14 @@ class TheoryDDNNF():
         self.tlemmas = tlemmas
 
         # COMPUTE PHI AND LEMMAS
-        phi_and_lemmas = formula.get_phi_and_lemmas(phi, tlemmas)
+        # phi_and_lemmas = formula.get_phi_and_lemmas(phi, tlemmas)
 
         # Compile to d-DNNF
         if sat_result == SAT:
             d4 = D4Compiler()
             self.phi_ddnnf, _, _ = d4.compile_dDNNF(
-                phi=phi_and_lemmas,
+                phi=phi,
+                tlemmas=tlemmas,
                 back_to_fnode=True,
                 computation_logger=computation_logger[self.structure_name],
                 save_path=base_out_path

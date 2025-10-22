@@ -129,7 +129,7 @@ def get_symbols(phi: FNode) -> List[FNode]:
     return list(phi.get_free_variables())
 
 
-def get_normalized(phi: FNode, converter) -> FNode:
+def get_normalized(phi: FNode, converter, should_convert: bool = True) -> FNode:
     """Returns a normalized version of phi
 
     Args:
@@ -140,7 +140,7 @@ def get_normalized(phi: FNode, converter) -> FNode:
     """
     if not isinstance(phi, FNode):
         raise TypeError("Expected FNode found " + str(type(phi)))
-    walker = NormalizerWalker(converter)
+    walker = NormalizerWalker(converter, should_convert)
     return walker.walk(phi)
 
 
@@ -164,6 +164,33 @@ def get_phi_and_lemmas(phi: FNode, tlemmas: List[FNode]) -> FNode:
         if not isinstance(lemma, FNode):
             raise TypeError("Expected FNode found " + str(type(lemma)))
     return _And(phi, *tlemmas)
+
+
+def get_phi_and_normalized_lemmas(phi: FNode, tlemmas: List[FNode], converter) -> FNode:
+    """Returns a formula that is equivalent to phi and lemmas as an FNode
+
+    Args:
+        phi (FNode): a pysmt formula
+        tlemmas (List[FNode]): a list of pysmt formulas
+
+    Returns:
+        FNode: the big and of phi and the lemmas
+    """
+    if not isinstance(phi, FNode):
+        raise TypeError("Expected FNode found " + str(type(phi)))
+    if not isinstance(tlemmas, list):
+        raise TypeError("Expected List found " + str(type(tlemmas)))
+    if len(tlemmas) == 0:
+        return phi
+    
+    for lemma in tlemmas:
+        if not isinstance(lemma, FNode):
+            raise TypeError("Expected FNode found " + str(type(lemma)))
+        
+    and_lemmas = _And(*tlemmas)
+    and_lemmas = get_normalized(and_lemmas, converter)
+
+    return _And(phi, and_lemmas)
 
 
 def get_boolean_mapping(phi: FNode) -> Dict[FNode, FNode]:

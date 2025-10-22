@@ -14,7 +14,7 @@ def main():
         phi,
         computation_logger=logger,
         base_out_path=f"data/{EXAMPLE_CODE}",
-        parallel_allsmt_procs=12
+        parallel_allsmt_procs=8
     )
 
     # USE YOUR t-d-DNNF
