@@ -145,12 +145,9 @@ class D4Compiler(DDNNFCompiler):
         phi_atoms: frozenset = get_atoms(phi)
         if tlemmas is not None:
             phi_and_lemmas = get_phi_and_lemmas(phi, tlemmas)
+            phi_and_lemmas = get_normalized(phi_and_lemmas, self.normalizer_solver.get_converter())
         else:
             phi_and_lemmas = phi
-
-        phi_and_lemmas = get_normalized(
-            phi_and_lemmas, self.normalizer_solver.get_converter()
-        )
 
         if do_not_quantify:
             fresh_atoms:Set[FNode] = frozenset()
@@ -349,7 +346,7 @@ class D4Compiler(DDNNFCompiler):
             os.mkdir(tmp_folder)
         start_time = time.time()
         self.logger.info("Translating to BC-S1.2...")
-        phi = get_normalized(phi, self.normalizer_solver.get_converter())
+        # phi = get_normalized(phi, self.normalizer_solver.get_converter())
         self.from_pysmt_to_bcs12(
             phi,
             f"{tmp_folder}/circuit.bc",
