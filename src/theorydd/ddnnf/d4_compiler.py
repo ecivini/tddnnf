@@ -21,7 +21,6 @@ from theorydd.formula import (
     save_refinement,
     load_refinement,
     get_phi_and_lemmas,
-    get_phi_and_normalized_lemmas,
     get_normalized,
 )
 from theorydd.walkers.walker_bcs12 import BCS12Walker
@@ -146,10 +145,7 @@ class D4Compiler(DDNNFCompiler):
         phi_atoms: frozenset = get_atoms(phi)
         if tlemmas is not None:
             phi_and_lemmas = get_phi_and_lemmas(phi, tlemmas)
-            start = time.time()
             phi_and_lemmas = get_normalized(phi_and_lemmas, self.normalizer_solver.get_converter())
-            time_diff = time.time() - start
-            print(f"Normalization time: {time_diff} seconds")
         else:
             phi_and_lemmas = phi
 

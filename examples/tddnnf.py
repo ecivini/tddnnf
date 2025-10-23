@@ -10,7 +10,7 @@ def main():
     logger = {}
 
     # BUILD YOUR DD WITH THE CONSTRUCTOR
-    ddnnf = TheoryDDNNF(
+    _ = TheoryDDNNF(
         phi,
         computation_logger=logger,
         base_out_path=f"data/{EXAMPLE_CODE}",

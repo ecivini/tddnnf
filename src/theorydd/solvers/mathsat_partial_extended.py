@@ -55,27 +55,27 @@ def _allsat_callback(model, converter, models):
     return 1
 
 
-def _parallel_worker(args: tuple) -> list:
+def _parallel_worker(args: tuple) -> tuple:
     """Worker function for parallel all-smt extension
     
     Args:
-        args: tuple of (partial_model, phi, atoms, solver_options_dict_total, shared_lemmas)
+        args: tuple of (partial_model, phi, atoms, solver_options_dict_total, tlemmas)
     
     Returns:
-        tuple of local_models
+        tuple of local_models, total_lemmas
     """
-    idx, partial_models, phi, atoms, solver_options_dict_total, shared_lemmas = args
+    partial_models, phi, atoms, solver_options_dict_total, tlemmas = args
 
     local_solver = Solver("msat", solver_options=solver_options_dict_total)
     local_solver.add_assertion(phi)
     total_models = []
+    total_lemmas = set().union(tlemmas)
+    local_converter = local_solver.converter
 
     for model in partial_models:
         local_solver.push()
         local_solver.add_assertion(And(model))
-        # Use current shared lemmas
-        local_solver.add_assertion(And(itertools.chain(*shared_lemmas.values())))
-        local_converter = local_solver.converter
+        local_solver.add_assertion(And(list(total_lemmas)))
         local_models = []
 
         mathsat.msat_all_sat(
@@ -87,13 +87,16 @@ def _parallel_worker(args: tuple) -> list:
         )
         
         # Update shared lemmas
-        for lemma in mathsat.msat_get_theory_lemmas(local_converter.msat_env()):
-            shared_lemmas[idx].append(local_converter.back(lemma))
+        with SuspendTypeChecking():
+            for lemma in mathsat.msat_get_theory_lemmas(local_converter.msat_env()):
+                parsed_lemma = local_converter.back(lemma)
+                normalized_lemma = FormulaContextualizerWithNodeId().walk(parsed_lemma)
+                total_lemmas.add(normalized_lemma)
 
         local_solver.pop()
         total_models += local_models
 
-    return total_models
+    return total_models, list(total_lemmas)
 
 
 class MathSATExtendedPartialEnumerator(SMTEnumerator):
@@ -206,33 +209,25 @@ class MathSATExtendedPartialEnumerator(SMTEnumerator):
             
         else:            
             # Create shared list for lemmas that can be updated by workers
-            manager = multiprocessing.Manager()
-            shared_lemmas = manager.dict({
-                i: manager.list() for i in range(parallel_procs + 1)
-            })
-            shared_lemmas[0].extend(self._tlemmas)
+            # manager = multiprocessing.Manager()
             
             # Prepare arguments for each worker
             chunks_size = (len(partial_models) // parallel_procs) + 1
             partial_models_chunks = itertools.batched(partial_models, chunks_size)
             worker_args = [
-                (i+1, chunk, phi, self._atoms, self.solver_options_dict_total, shared_lemmas)
-                for i, chunk in enumerate(partial_models_chunks)
+                (chunk, phi, self._atoms, self.solver_options_dict_total, self._tlemmas)
+                for chunk in partial_models_chunks
             ]
 
-            # Use a process pool to maintain constant number of workers            
+            # Use a process pool to maintain constant number of workers  
+            new_tlemmas = []          
             with multiprocessing.Pool(processes=parallel_procs) as pool:
                 # Use imap_unordered to process results as they complete
-                for models_batch in pool.imap_unordered(_parallel_worker, worker_args):
+                for models_batch, lemmas_batch in pool.imap_unordered(_parallel_worker, worker_args):
                     self._models.extend(models_batch)
-            # Update instance lemmas with all collected lemmas
-            with SuspendTypeChecking():
-                shared_lemmas_ctx = []
-                for idx in range(1, parallel_procs + 1):
-                    ctx = FormulaContextualizerWithNodeId()
-                    worker_lemmas = list(shared_lemmas[idx])
-                    shared_lemmas_ctx.extend([ctx.walk(l) for l in worker_lemmas])
-            self._tlemmas.extend(shared_lemmas_ctx)
+                    new_tlemmas.extend(lemmas_batch)
+
+            self._tlemmas.extend(new_tlemmas)
 
         return SAT
 
