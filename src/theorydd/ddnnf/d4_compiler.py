@@ -339,14 +339,14 @@ class D4Compiler(DDNNFCompiler):
         computation_logger["dDNNF compiler"] = "d4"
 
         # choose temporary folder
-        tmp_folder = self._choose_tmp_folder(save_path) 
+        tmp_folder = self._choose_tmp_folder(save_path)
 
         # translate to BC-S1.2 and get mapping used for translation
         if not os.path.exists(tmp_folder):
             os.mkdir(tmp_folder)
         start_time = time.time()
         self.logger.info("Translating to BC-S1.2...")
-        #phi = get_normalized(phi, self.normalizer_solver.get_converter())
+        # phi = get_normalized(phi, self.normalizer_solver.get_converter())
         self.from_pysmt_to_bcs12(
             phi,
             f"{tmp_folder}/circuit.bc",

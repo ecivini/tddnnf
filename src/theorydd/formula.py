@@ -129,7 +129,7 @@ def get_symbols(phi: FNode) -> List[FNode]:
     return list(phi.get_free_variables())
 
 
-def get_normalized(phi: FNode, converter, should_convert: bool = True) -> FNode:
+def get_normalized(phi: FNode, converter) -> FNode:
     """Returns a normalized version of phi
 
     Args:
@@ -140,7 +140,7 @@ def get_normalized(phi: FNode, converter, should_convert: bool = True) -> FNode:
     """
     if not isinstance(phi, FNode):
         raise TypeError("Expected FNode found " + str(type(phi)))
-    walker = NormalizerWalker(converter, should_convert)
+    walker = NormalizerWalker(converter)
     return walker.walk(phi)
 
 
