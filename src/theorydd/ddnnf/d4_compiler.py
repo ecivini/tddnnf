@@ -4,6 +4,7 @@ import json
 import logging
 import os
 import time
+import subprocess
 from typing import Dict, List, Set, Tuple, TypeVar
 from dataclasses import dataclass
 from pysmt.shortcuts import (
@@ -382,13 +383,16 @@ class D4Compiler(DDNNFCompiler):
         # output should be in file temp_folder/compilation_output.nnf
         start_time = time.time()
         self.logger.info("Compiling dDNNF...")
-        timeout_string = ""
-        if timeout > 0:
-            timeout_string = f"timeout {timeout}s "
-        result = os.system(
-            f"{timeout_string}{_D4_COMMAND} -i {tmp_folder}/circuit.bc --input-type circuit --dump-file {tmp_folder}/compilation_output.nnf > /dev/null"
+        command = (
+            f"{_D4_COMMAND} -i {tmp_folder}/circuit.bc --input-type circuit --dump-file {tmp_folder}/compilation_output.nnf > /dev/null"
+        ).split(" ")
+        result = subprocess.run(
+            command,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            timeout=timeout if timeout > 0 else None,
         )
-        if result != 0:
+        if result.returncode != 0 or result.stderr != b"":
             if save_path is None:
                 self._clean_tmp_folder(tmp_folder)
             raise TimeoutError("d4 compilation failed: timeout")
