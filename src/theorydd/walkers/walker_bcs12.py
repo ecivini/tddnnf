@@ -25,32 +25,36 @@ class BCS12Walker(DagWalker):
 
     def _apply_mapping(self, formula: FNode):
         """applies the mapping when possible, returns the variable name"""
-        if formula in self.abstraction:
-            return f"v{self.abstraction[formula]}"
-        return None
+        if formula not in self.abstraction:
+            next_id = max(self.abstraction.values(), default=0) + 1
+            self.abstraction[formula] = next_id
+
+        return f"v{self.abstraction[formula]}"
+    
+    def _remove_double_negations(self, gate: str) -> str:
+        """removes double negation from a gate name"""
+        return gate.replace("--", "")
 
     def walk_and(self, formula: FNode, args, **kwargs):
         """translate AND node"""
         # pylint: disable=unused-argument
-        child_names = [arg for arg in args if arg is not None]
-        if not child_names:
-            return None
+        if None in args:
+            raise ValueError("AND node with invalid children")
         
         self.gate_counter += 1
         gate_name = f"g{self.gate_counter}"
-        self.gate_lines.append(f"G {gate_name} := A " + " ".join(child_names))
+        self.gate_lines.append(f"G {gate_name} := A " + " ".join(args))
         return gate_name
 
     def walk_or(self, formula: FNode, args, **kwargs):
         """translate OR node"""
         # pylint: disable=unused-argument
-        child_names = [arg for arg in args if arg is not None]
-        if not child_names:
-            return None
+        if None in args:
+            raise ValueError("OR node with invalid children")
         
         self.gate_counter += 1
         gate_name = f"g{self.gate_counter}"
-        self.gate_lines.append(f"G {gate_name} := O " + " ".join(child_names))
+        self.gate_lines.append(f"G {gate_name} := O " + " ".join(args))
         return gate_name
 
     def walk_not(self, formula: FNode, args, **kwargs):
@@ -168,12 +172,10 @@ class BCS12Walker(DagWalker):
     def walk_theory(self, formula, args, **kwargs):
         """translate theory node"""
         # pylint: disable=unused-argument
-        if formula in self.phi_atoms:
-            return f"v{self.abstraction[formula]}"
-        return None
+        return self._apply_mapping(formula)
 
     @handles(op.REAL_CONSTANT, op.INT_CONSTANT, op.BV_CONSTANT)
     def do_nothing(self, formula, args, **kwargs):
         """do nothing when seeing theory constants"""
         # pylint: disable=unused-argument
-        return None
+        self._apply_mapping(formula)

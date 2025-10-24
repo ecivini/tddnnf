@@ -165,12 +165,17 @@ class D4Compiler(DDNNFCompiler):
             self.abstraction[atom] = count
             count += 1
 
+        # initial mapping
         self.refinement = {v: k for k, v in self.abstraction.items()}
         self.important_atoms_labels = important_atoms_labels
 
-        # Use the BCS12Walker to traverse the formula
+        # use the BCS12Walker to traverse the formula
         walker = BCS12Walker(self.abstraction, phi_atoms)
         root = walker.walk(phi_and_lemmas)
+
+        # update the mapping after traversal
+        self.abstraction = walker.abstraction
+        self.refinement = {v: k for k, v in self.abstraction.items()}
 
         # Now write file
         with open(bcs12_out_file_path, "w") as f:
