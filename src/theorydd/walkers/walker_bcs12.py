@@ -61,15 +61,13 @@ class BCS12Walker(DagWalker):
         """translate NOT node"""
         # pylint: disable=unused-argument
         if args[0] is None:
-            return None
+            raise ValueError("NOT node with invalid child")
         return f"-{args[0]}"
 
     def walk_symbol(self, formula: FNode, args, **kwargs):
         """translate SYMBOL node"""
         # pylint: disable=unused-argument
-        if formula in self.phi_atoms:
-            return f"v{self.abstraction[formula]}"
-        return None
+        return self._apply_mapping(formula)
 
     def walk_bool_constant(self, formula: FNode, args, **kwargs):
         """translate BOOL const node"""
@@ -105,7 +103,10 @@ class BCS12Walker(DagWalker):
         # Create: (~a & ~b)
         self.gate_counter += 1
         gate_and2 = f"g{self.gate_counter}"
-        self.gate_lines.append(f"G {gate_and2} := A -{args[0]} -{args[1]}")
+
+        line = f"G {gate_and2} := A -{args[0]} -{args[1]}"
+        line = self._remove_double_negations(line)
+        self.gate_lines.append(line)
         
         # Create: (a & b) | (~a & ~b)
         self.gate_counter += 1
@@ -123,7 +124,10 @@ class BCS12Walker(DagWalker):
         
         self.gate_counter += 1
         gate_name = f"g{self.gate_counter}"
-        self.gate_lines.append(f"G {gate_name} := O -{args[0]} {args[1]}")
+        
+        line = f"G {gate_name} := O -{args[0]} {args[1]}"
+        line = self._remove_double_negations(line)
+        self.gate_lines.append(line)
         
         return gate_name
 
