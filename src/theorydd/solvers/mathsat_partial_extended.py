@@ -62,10 +62,10 @@ def _parallel_worker(args: tuple) -> tuple:
     total_models = []
     total_lemmas = _contextualize(contextualizer, tlemmas)
 
-    next_lemma = 0 # index of the next lemma to be learned
+    next_lemma = 0  # index of the next lemma to be learned
 
     for model in partial_models:
-        local_solver.add_assertions(total_lemmas[next_lemma:])
+        local_solver.add_assertions(itertools.islice(total_lemmas, next_lemma, None))
         next_lemma = len(total_lemmas)
 
         local_solver.push()
