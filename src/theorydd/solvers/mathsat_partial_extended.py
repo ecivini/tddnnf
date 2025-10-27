@@ -7,52 +7,35 @@ import mathsat
 from allsat_cnf.polarity_cnfizer import PolarityCNFizer
 from pysmt.fnode import FNode
 from pysmt.formula import FormulaContextualizer
-from pysmt.shortcuts import And, Solver, get_env
+from pysmt.shortcuts import And, Solver
 
 from theorydd.constants import SAT, UNSAT
 from theorydd.solvers.solver import SMTEnumerator
+from theorydd.util.collections import Nested, map_nested
+from theorydd.util.pysmt import SuspendTypeChecking
 
-
-class SuspendTypeChecking(object):
-    """Context to disable type-checking during formula creation."""
-
-    def __init__(self, env=None):
-        if env is None:
-            env = get_env()
-        self.env = env
-        self.mgr = env.formula_manager
-
-    def __enter__(self):
-        """Entering a Context: Disable type-checking."""
-        self.mgr._do_type_check = lambda x : x
-        return self.env
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        """Exiting the Context: Re-enable type-checking."""
-        self.mgr._do_type_check = self.mgr._do_type_check_real
-
-class FormulaContextualizerWithNodeId(FormulaContextualizer):
-    """
-    Contextualizer that uses node_id to identify nodes.
-
-    In multiprocessing, PySMT nodes are copied between processes by reconstructing
-    their structure. This breaks PySMT's singleton property, and identical formulas
-    no longer share the same object instance.
-
-    ## Solution:
-    Reconstruct formulas using the process' formula manager (aka "contextualization").
-    But use node_id (instead of object identity) as the cache key! This ensures
-    identical nodes map to the same contextualized instance in the target process,
-    enabling efficient caching across processes.
-    """
-    def _get_key(self, formula, **kwargs):
-        return formula.node_id()
 
 def _allsat_callback(model, converter, models):
     """callback for all-sat"""
     py_model = {converter.back(v) for v in model}
     models.append(py_model)
     return 1
+
+
+def _contextualize(
+        contextualizer: FormulaContextualizer, formulas: Nested[FNode]
+) -> Nested[FNode]:
+    """Contextualizes a collection of formulas using the provided contextualizer
+
+    Args:
+        contextualizer: the FormulaContextualizer to use
+        formulas: collection of formulas to contextualize
+
+    Returns:
+        the contextualized formulas
+    """
+    with SuspendTypeChecking():
+        return map_nested(lambda f: contextualizer.walk(f), formulas)
 
 
 def _parallel_worker(args: tuple) -> tuple:
@@ -67,36 +50,45 @@ def _parallel_worker(args: tuple) -> tuple:
     partial_models, phi, atoms, solver_options_dict_total, tlemmas = args
 
     local_solver = Solver("msat", solver_options=solver_options_dict_total)
-    local_solver.add_assertion(phi)
-    total_models = []
-    total_lemmas = set().union(tlemmas)
     local_converter = local_solver.converter
 
+    contextualizer = FormulaContextualizer()
+    phi = _contextualize(contextualizer, phi)
+    atoms = _contextualize(contextualizer, atoms)
+    converted_atoms = [local_converter.convert(a) for a in atoms]
+
+    local_solver.add_assertion(phi)
+
+    total_models = []
+    total_lemmas = _contextualize(contextualizer, tlemmas)
+
+    next_lemma = 0  # index of the next lemma to be learned
+
     for model in partial_models:
+        local_solver.add_assertions(itertools.islice(total_lemmas, next_lemma, None))
+        next_lemma = len(total_lemmas)
+
         local_solver.push()
-        local_solver.add_assertion(And(model))
-        local_solver.add_assertion(And(list(total_lemmas)))
-        local_models = []
+
+        model = _contextualize(contextualizer, model)
+        local_solver.add_assertions(model)
 
         mathsat.msat_all_sat(
             local_solver.msat_env(),
-            [local_converter.convert(a) for a in atoms],
+            converted_atoms,
             callback=lambda model: _allsat_callback(
-                model, local_converter, local_models
+                model, local_converter, total_models
             ),
         )
-        
-        # Update shared lemmas
-        with SuspendTypeChecking():
-            for lemma in mathsat.msat_get_theory_lemmas(local_converter.msat_env()):
-                parsed_lemma = local_converter.back(lemma)
-                normalized_lemma = FormulaContextualizerWithNodeId().walk(parsed_lemma)
-                total_lemmas.add(normalized_lemma)
+
+        total_lemmas += [
+            local_converter.back(l)
+            for l in mathsat.msat_get_theory_lemmas(local_solver.msat_env())
+        ]
 
         local_solver.pop()
-        total_models += local_models
 
-    return total_models, list(total_lemmas)
+    return total_models, total_lemmas
 
 
 class MathSATExtendedPartialEnumerator(SMTEnumerator):
@@ -138,7 +130,7 @@ class MathSATExtendedPartialEnumerator(SMTEnumerator):
         self._atoms = []
 
     def check_all_sat(
-        self, phi: FNode, boolean_mapping: Dict[FNode, FNode] | None = None, parallel_procs: int = 1
+            self, phi: FNode, boolean_mapping: Dict[FNode, FNode] | None = None, parallel_procs: int = 1
     ) -> bool:
         """Computes All-SMT for the SMT-formula phi using partial assignment and Tsetsin CNF-ization
 
@@ -206,11 +198,11 @@ class MathSATExtendedPartialEnumerator(SMTEnumerator):
                 self._models += models_total
                 self._tlemmas += tlemmas_total
                 self.solver_total.pop()
-            
-        else:            
+
+        else:
             # Create shared list for lemmas that can be updated by workers
             # manager = multiprocessing.Manager()
-            
+
             # Prepare arguments for each worker
             chunks_size = (len(partial_models) // parallel_procs) + 1
             partial_models_chunks = itertools.batched(partial_models, chunks_size)
@@ -220,12 +212,13 @@ class MathSATExtendedPartialEnumerator(SMTEnumerator):
             ]
 
             # Use a process pool to maintain constant number of workers  
-            new_tlemmas = []          
+            new_tlemmas = []
             with multiprocessing.Pool(processes=parallel_procs) as pool:
                 # Use imap_unordered to process results as they complete
                 for models_batch, lemmas_batch in pool.imap_unordered(_parallel_worker, worker_args):
-                    self._models.extend(models_batch)
-                    new_tlemmas.extend(lemmas_batch)
+                    contextualizer = FormulaContextualizer()
+                    self._models.extend(_contextualize(contextualizer, models_batch))
+                    new_tlemmas.extend(_contextualize(contextualizer, lemmas_batch))
 
             self._tlemmas.extend(new_tlemmas)
 
