@@ -50,31 +50,34 @@ def _parallel_worker(args: tuple) -> tuple:
     partial_models, phi, atoms, solver_options_dict_total, tlemmas = args
 
     local_solver = Solver("msat", solver_options=solver_options_dict_total)
+    local_converter = local_solver.converter
 
     contextualizer = FormulaContextualizer()
     phi = _contextualize(contextualizer, phi)
     atoms = _contextualize(contextualizer, atoms)
+    converted_atoms = [local_converter.convert(a) for a in atoms]
 
     local_solver.add_assertion(phi)
 
     total_models = []
     total_lemmas = _contextualize(contextualizer, tlemmas)
 
-    local_converter = local_solver.converter
+    next_lemma = 0 # index of the next lemma to be learned
 
     for model in partial_models:
-        local_solver.push()
-        model = _contextualize(contextualizer, model)
+        local_solver.add_assertions(total_lemmas[next_lemma:])
+        next_lemma = len(total_lemmas)
 
+        local_solver.push()
+
+        model = _contextualize(contextualizer, model)
         local_solver.add_assertions(model)
-        local_solver.add_assertions(total_lemmas)
-        local_models = []
 
         mathsat.msat_all_sat(
             local_solver.msat_env(),
-            [local_converter.convert(a) for a in atoms],
+            converted_atoms,
             callback=lambda model: _allsat_callback(
-                model, local_converter, local_models
+                model, local_converter, total_models
             ),
         )
 
@@ -84,7 +87,6 @@ def _parallel_worker(args: tuple) -> tuple:
         ]
 
         local_solver.pop()
-        total_models += local_models
 
     return total_models, total_lemmas
 
