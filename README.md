@@ -9,7 +9,7 @@ First, install the dd dependency as follows:
 ```
     pip install --upgrade wheel cython
     export DD_FETCH=1 DD_CUDD=1
-    pip install dd=0.5.7 -vvv --use-pep517 --no-build-isolation
+    pip install dd==0.6.0 -vvv --use-pep517 --no-build-isolation
 ```
 
 You can check that the dependency is installed correctly if the following command does not give you ant errors:
