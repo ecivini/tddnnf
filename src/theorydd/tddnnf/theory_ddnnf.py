@@ -6,7 +6,7 @@ import os
 from theorydd.solvers.mathsat_partial_extended import MathSATExtendedPartialEnumerator
 from theorydd.ddnnf.d4_compiler import D4Compiler
 from pysmt.fnode import FNode
-from pysmt.shortcuts import write_smtlib
+from pysmt.shortcuts import write_smtlib, And
 from theorydd.solvers.solver import SMTEnumerator
 from theorydd import formula
 from theorydd.solvers.lemma_extractor import find_qvars, extract
@@ -26,7 +26,9 @@ class TheoryDDNNF():
         load_lemmas: str | None = None,
         sat_result: bool | None = None,
         computation_logger: Dict | None = None,
-        parallel_allsmt_procs: int = 1
+        parallel_allsmt_procs: int = 1,
+        store_tlemmas: bool = False,
+        stop_after_allsmt: bool = False
     ) -> None:
         if not hasattr(self, "structure_name"):
             self.structure_name = "T-DDNNF"
@@ -64,6 +66,16 @@ class TheoryDDNNF():
         )
         self.sat_result = sat_result
         self.tlemmas = tlemmas
+
+        # If store_tlemmas_path is given, store the lemmas to a file
+        if store_tlemmas and base_out_path is not None:
+            tlemmas_conjunction = And(tlemmas)
+            tlemmas_out_path = os.path.join(base_out_path, "tlemmas.smt2")
+            write_smtlib(tlemmas_conjunction, tlemmas_out_path)
+
+        # If stop_after_allsmt is True, do not proceed to d-DNNF compilation
+        if stop_after_allsmt:
+            return
 
         # Compile to d-DNNF
         if sat_result == SAT:
