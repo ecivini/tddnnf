@@ -25,8 +25,7 @@ dependencies = [
     "dd==0.6.0",
     "allsat_cnf @ git+https://github.com/masinag/allsat-cnf@main",
     "GitPython>=3.1.44",
-    "python-dotenv==1.0.1",
-    "theorydd @ git+https://github.com/ecivini/tddnnf@main"
+    "python-dotenv==1.0.1"
 ]
 
 [project.urls]
