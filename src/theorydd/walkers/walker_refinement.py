@@ -33,6 +33,9 @@ class RefinementWalker(DagWalker):
     def walk_symbol(self, formula: FNode, args, **kwargs):
         '''translate SYMBOL node'''
         # pylint: disable=unused-argument
+        if formula in self.refinment:
+            return self._refine(formula)
+
         return formula
 
     def walk_bool_constant(self, formula: FNode, args, **kwargs):

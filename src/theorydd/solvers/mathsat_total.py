@@ -31,6 +31,8 @@ class MathSATTotalEnumerator(SMTEnumerator):
             "preprocessor.simplification": "0",  # from mathsat
             "dpll.store_tlemmas": "true",  # - necessary to get t-lemmas
             "theory.la.split_rat_eq": "false",
+            "theory.la.laz_internal_branch_and_bound": "true",
+            "theory.la.laz_internal_branch_and_bound_limit": "0"
         }
         self.solver = Solver("msat", solver_options=solver_options_dict)
         self._last_phi = None
@@ -40,7 +42,7 @@ class MathSATTotalEnumerator(SMTEnumerator):
         self._atoms = []
 
     def check_all_sat(
-        self, phi: FNode, boolean_mapping: Dict[FNode, FNode] | None = None, parallel_procs: int = 1
+        self, phi: FNode, boolean_mapping: Dict[FNode, FNode] | None = None, parallel_procs: int = 1, atoms: List[FNode] | None = None
     ) -> bool:
         """Computes All-SMT for the SMT-formula phi using total assignments
 
@@ -55,9 +57,8 @@ class MathSATTotalEnumerator(SMTEnumerator):
         self._last_phi = phi
         self._tlemmas = []
         self._models = []
-        self._atoms = []
+        self._atoms = atoms if atoms is not None else phi.get_atoms()
 
-        self._atoms = phi.get_atoms()
         self.solver.reset_assertions()
         self.solver.add_assertion(phi)
 

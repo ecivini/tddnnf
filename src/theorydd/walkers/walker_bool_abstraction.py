@@ -10,9 +10,14 @@ from theorydd.util.custom_exceptions import UnsupportedNodeException
 class BooleanAbstractionWalker(DagWalker):
     '''A walker to normalize smt formulas into its boolean abstraction'''
 
-    def __init__(self, abstraction={}, env=None, invalidate_memoization=False):
+    def __init__(self, atoms={}, abstraction={}, env=None, invalidate_memoization=False):
         DagWalker.__init__(self, env, invalidate_memoization)
+        self.atoms = atoms
         self.abstraction = abstraction
+
+        for atom in atoms:
+            self._abstract(atom)
+
         return
 
     def walk_and(self, formula: FNode, args, **kwargs):
@@ -33,10 +38,6 @@ class BooleanAbstractionWalker(DagWalker):
     def walk_symbol(self, formula: FNode, args, **kwargs):
         '''translate SYMBOL node'''
         # pylint: disable=unused-argument
-        return formula
-
-    def walk_bool_constant(self, formula: FNode, args, **kwargs):
-        '''translate BOOL const node'''
         return formula
 
     def walk_iff(self, formula, args, **kwargs):
@@ -71,14 +72,13 @@ class BooleanAbstractionWalker(DagWalker):
         # pylint: disable=unused-argument
         raise UnsupportedNodeException('Quantifiers are yet to be supported')
 
-    @handles(op.EQUALS)
-    def walk_equals(self, formula, args, **kwargs):
+    @handles(*op.CONSTANTS, *op.THEORY_OPERATORS)
+    def walk_constants(self, formula, args, **kwargs):
         '''translate Equals node'''
         # pylint: disable=unused-argument
-        return self._abstract(formula)
+        return formula
 
-    @handles(*op.THEORY_OPERATORS, *op.BV_RELATIONS, *op.IRA_RELATIONS,
-             *op.STR_RELATIONS, op.REAL_CONSTANT, op.BV_CONSTANT, op.INT_CONSTANT, op.FUNCTION)
+    @handles(*op.RELATIONS, op.FUNCTION)
     def walk_theory(self, formula, args, **kwargs):
         '''translate theory node'''
         # pylint: disable=unused-argument
