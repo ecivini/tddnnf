@@ -1,4 +1,4 @@
-from typing import Dict, Tuple, List
+from typing import Dict, Tuple, List, Set
 import time
 import logging
 import os
@@ -28,7 +28,8 @@ class TheoryDDNNF():
         computation_logger: Dict | None = None,
         parallel_allsmt_procs: int = 1,
         store_tlemmas: bool = False,
-        stop_after_allsmt: bool = False
+        stop_after_allsmt: bool = False,
+        atoms_to_project: Set[FNode] | None = None,
     ) -> None:
         if not hasattr(self, "structure_name"):
             self.structure_name = "T-DDNNF"
@@ -85,7 +86,8 @@ class TheoryDDNNF():
                 tlemmas=tlemmas,
                 back_to_fnode=True,
                 computation_logger=computation_logger[self.structure_name],
-                save_path=base_out_path
+                save_path=base_out_path,
+                atoms_to_project=atoms_to_project
             )
 
             if base_out_path is not None:

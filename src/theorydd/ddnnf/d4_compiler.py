@@ -313,6 +313,7 @@ class D4Compiler(DDNNFCompiler):
         do_not_quantify: bool = False,
         computation_logger: Dict | None = None,
         timeout: int = 3600,
+        atoms_to_project: Set[FNode] | None = None,
     ) -> Tuple[FNode | None, int, int]:
         """
         Compiles an FNode in dDNNF through the d4 compiler
@@ -333,6 +334,8 @@ class D4Compiler(DDNNFCompiler):
             timeout (int) = 3600 -> the maximum time in seconds the computation is allowed to run
 
         Returns:
+        # LOAD LEMMAS
+
             (FNode | None) -> the input pysmt formula in dDNNF, or None if back_to_fnode is False
             (int) -> the number of nodes in the dDNNF
             (int) -> the number of edges in the dDNNF
@@ -351,18 +354,32 @@ class D4Compiler(DDNNFCompiler):
         if not os.path.exists(tmp_folder):
             os.mkdir(tmp_folder)
         start_time = time.time()
-        self.logger.info("Translating to BC-S1.2...")
-        # phi = get_normalized(phi, self.normalizer_solver.get_converter())
-        self.from_pysmt_to_bcs12(
+        self.logger.info("Translating to DIMCAS...")
+        
+        phi = get_normalized(phi, self.normalizer_solver.get_converter())
+
+        if atoms_to_project is None:
+            atoms_to_project = set(phi.get_atoms())
+
+        # self.from_pysmt_to_bcs12(
+        #     phi,
+        #     f"{tmp_folder}/circuit.bc",
+        #     tlemmas,
+        #     do_not_quantify=do_not_quantify,
+        # )
+        self.from_smtlib_to_dimacs_file(
             phi,
-            f"{tmp_folder}/circuit.bc",
+            f"{tmp_folder}/dimacs.cnf",
             tlemmas,
+            sat_result=sat_result,
+            quantify_tseitsin=quantify_tseitsin,
             do_not_quantify=do_not_quantify,
+            atoms_to_project=atoms_to_project
         )
         elapsed_time = time.time() - start_time
-        computation_logger["BC-S1.2 translation time"] = elapsed_time
+        computation_logger["DIMCAS translation time"] = elapsed_time
         self.logger.info(
-            "BC-S1.2 translation completed in %s seconds", str(elapsed_time)
+            "DIMCAS translation completed in %s seconds", str(elapsed_time)
         )
 
         # save mapping for refinement
@@ -384,7 +401,7 @@ class D4Compiler(DDNNFCompiler):
         start_time = time.time()
         self.logger.info("Compiling dDNNF...")
         command = (
-            f"{_D4_COMMAND} -i {tmp_folder}/circuit.bc --input-type circuit --dump-file {tmp_folder}/compilation_output.nnf > /dev/null"
+            f"{_D4_COMMAND} -i {tmp_folder}/dimacs.cnf --input-type cnf --dump-file {tmp_folder}/compilation_output.nnf > /dev/null"
         ).split(" ")
         result = subprocess.run(
             command,
@@ -470,6 +487,85 @@ class D4Compiler(DDNNFCompiler):
                     f.write(" 0\n")
                 else:
                     f.write(line)
+
+    def from_smtlib_to_dimacs_file(
+        self,
+        phi: FNode,
+        dimacs_file: str,
+        tlemmas: List[FNode] | None = None,
+        sat_result: bool | None = None,
+        quantify_tseitsin: bool = False,
+        do_not_quantify: bool = False,
+        atoms_to_project: Set[FNode] | None = None,
+    ) -> None:
+        """
+        translates an SMT formula in DIMACS format and saves it on file.
+        All fresh variables are saved inside quantification_file.
+        The mapping use to translate the formula is then returned.
+
+        Args:
+            phi (FNode) -> the input formula
+            dimacs_file (str) -> the path to the file where the dimacs output need to be saved
+            tlemmas (List[FNode] | None) = None -> a list of theory lemmas to be added to the formula
+            sat_result (bool | None) = None -> the result of the SAT check on the formula
+            quantify_tseitsin (bool) = False -> set it to True to quantify over the tseitsin variables
+                during dDNNF compilation
+            do_not_quantify (bool) = False -> set it to True to avoid quantifying over any fresh variable
+        """
+        phi_atoms: frozenset = get_atoms(phi)
+        if tlemmas is not None:
+            phi_and_lemmas = get_phi_and_lemmas(phi, tlemmas)
+        else:
+            phi_and_lemmas = phi
+        phi_and_lemmas = get_normalized(phi_and_lemmas, self.normalizer_solver.get_converter())
+
+        phi_cnf: FNode = LabelCNFizer().convert_as_formula(phi_and_lemmas)
+        phi_cnf_atoms: frozenset = get_atoms(phi_cnf)
+        if do_not_quantify:
+            fresh_atoms: frozenset = frozenset()
+        elif not quantify_tseitsin:
+            phi_and_lemmas_atoms: frozenset = get_atoms(phi_and_lemmas)
+            fresh_atoms = frozenset(phi_and_lemmas_atoms.difference(phi_atoms))
+        else:
+            fresh_atoms: Set[FNode] = frozenset(phi_cnf_atoms.difference(phi_atoms))
+        important_atoms_labels: List[int] = []
+
+        # create mapping
+        count = 1
+        self.abstraction = {}
+        for atom in phi_cnf_atoms:
+            if atom not in fresh_atoms:
+                important_atoms_labels.append(count)
+            self.abstraction[atom] = count
+            count += 1
+
+        # Abstract the atoms to project
+        abstracted_atoms_to_project: Set[int] = set()
+        if atoms_to_project is not None:
+            for atom in atoms_to_project:
+                abstracted_atoms_to_project.add(self.abstraction[atom])
+
+        self.refinement = {v: k for k, v in self.abstraction.items()}
+        self.important_atoms_labels = important_atoms_labels
+
+        # check if formula is top
+        if phi_cnf.is_true():
+            self.write_dimacs_true(dimacs_file)
+            return
+
+        # check if formula is bottom
+        if phi_cnf.is_false() or sat_result == UNSAT:
+            self.write_dimacs_false(dimacs_file)
+            return
+
+        # CONVERTNG IN DIMACS FORMAT AND SAVING ON FILE
+
+        self.write_dimacs(
+            dimacs_file,
+            phi_cnf,
+            important_atoms_labels,
+            abstracted_atoms_to_project
+        )
 
 
 if __name__ == "__main__":
