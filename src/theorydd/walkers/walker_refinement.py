@@ -7,12 +7,12 @@ from pysmt.shortcuts import And, Or, Iff, Implies, TRUE, FALSE, Not, Ite, BOOL
 from theorydd.util.custom_exceptions import UnsupportedNodeException
 
 
-class BooleanAbstractionWalker(DagWalker):
-    '''A walker to normalize smt formulas into its boolean abstraction'''
+class RefinementWalker(DagWalker):
+    '''A walker that converts an abstracted formula into its refinment'''
 
-    def __init__(self, abstraction={}, env=None, invalidate_memoization=False):
+    def __init__(self, abstraction, env=None, invalidate_memoization=False):
         DagWalker.__init__(self, env, invalidate_memoization)
-        self.abstraction = abstraction
+        self.refinment = {v: k for k, v in abstraction.items()}
         return
 
     def walk_and(self, formula: FNode, args, **kwargs):
@@ -37,6 +37,7 @@ class BooleanAbstractionWalker(DagWalker):
 
     def walk_bool_constant(self, formula: FNode, args, **kwargs):
         '''translate BOOL const node'''
+        # pylint: disable=unused-argument
         return formula
 
     def walk_iff(self, formula, args, **kwargs):
@@ -54,12 +55,13 @@ class BooleanAbstractionWalker(DagWalker):
         # pylint: disable=unused-argument
         return Ite(args[0], args[1], args[2])
 
-    def _abstract(self, formula):
-        if formula not in self.abstraction:
-            var_name = f"v{len(self.abstraction)}"
-            abstr_var = self.env.formula_manager.Symbol(var_name, BOOL)
-            self.abstraction[formula] = abstr_var
-        return self.abstraction[formula]
+    def _refine(self, formula):
+        if formula not in self.refinment:
+            raise UnsupportedNodeException(
+                f"Formula {formula} not in abstraction mapping"
+            )
+
+        return self.refinment[formula]
 
     def walk_forall(self, formula, args, **kwargs):
         '''translate For-all node'''
@@ -75,11 +77,11 @@ class BooleanAbstractionWalker(DagWalker):
     def walk_equals(self, formula, args, **kwargs):
         '''translate Equals node'''
         # pylint: disable=unused-argument
-        return self._abstract(formula)
+        return self._refine(formula)
 
     @handles(*op.THEORY_OPERATORS, *op.BV_RELATIONS, *op.IRA_RELATIONS,
              *op.STR_RELATIONS, op.REAL_CONSTANT, op.BV_CONSTANT, op.INT_CONSTANT, op.FUNCTION)
     def walk_theory(self, formula, args, **kwargs):
         '''translate theory node'''
         # pylint: disable=unused-argument
-        return self._abstract(formula)
+        return self._refine(formula)
