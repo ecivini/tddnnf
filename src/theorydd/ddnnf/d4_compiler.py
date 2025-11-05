@@ -399,7 +399,7 @@ class D4Compiler(DDNNFCompiler):
         start_time = time.time()
         self.logger.info("Compiling dDNNF...")
         command = (
-            f"{_D4_COMMAND} -i {tmp_folder}/circuit.bc --input-type circuit --dump-file {tmp_folder}/compilation_output.nnf > /dev/null"
+            f"{_D4_COMMAND} -i {tmp_folder}/circuit.bc --input-type circuit --remove-gates 1 --dump-file {tmp_folder}/compilation_output.nnf > /dev/null"
         ).split(" ")
         result = subprocess.run(
             command,
