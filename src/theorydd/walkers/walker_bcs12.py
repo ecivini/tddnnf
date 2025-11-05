@@ -13,13 +13,11 @@ class BCS12Walker(DagWalker):
     def __init__(
         self,
         abstraction: dict[FNode, int],
-        phi_atoms: frozenset,
         env=None,
         invalidate_memoization=False,
     ):
         DagWalker.__init__(self, env, invalidate_memoization)
         self.abstraction = abstraction
-        self.phi_atoms = phi_atoms
         self.gate_counter = 0
         self.gate_lines = []
 

@@ -130,6 +130,7 @@ class D4Compiler(DDNNFCompiler):
     def from_pysmt_to_bcs12(
         self,
         phi: FNode,
+        projected_vars: set[FNode],
         bcs12_out_file_path: str,
         tlemmas: List[FNode] | None = None,
         do_not_quantify: bool = False,
@@ -178,6 +179,11 @@ class D4Compiler(DDNNFCompiler):
         self.abstraction = walker.abstraction
         self.refinement = {v: k for k, v in self.abstraction.items()}
 
+        # Compute abstraction of projected vars
+        projected_vars_abstraction = set()
+        for v in projected_vars:
+            projected_vars_abstraction.add(self.abstraction[v])
+
         # Now write file
         with open(bcs12_out_file_path, "w") as f:
             f.write("c BC-S1.2\n")
@@ -185,6 +191,13 @@ class D4Compiler(DDNNFCompiler):
             for v in phi_atoms:
                 name = f"v{self.abstraction[v]}"
                 f.write(f"I {name}\n")
+
+            # Projected variable declarations
+            if len(projected_vars_abstraction) > 0:
+                line = "P"
+                for var in projected_vars_abstraction:
+                    line += f" v{var}"
+                f.write(line + "\n")
 
             # Gate definitions
             for ln in walker.gate_lines:
@@ -352,9 +365,11 @@ class D4Compiler(DDNNFCompiler):
             os.mkdir(tmp_folder)
         start_time = time.time()
         self.logger.info("Translating to BC-S1.2...")
-        # phi = get_normalized(phi, self.normalizer_solver.get_converter())
+        phi = get_normalized(phi, self.normalizer_solver.get_converter())
+        phi_atoms = set(phi.get_atoms())
         self.from_pysmt_to_bcs12(
             phi,
+            phi_atoms,
             f"{tmp_folder}/circuit.bc",
             tlemmas,
             do_not_quantify=do_not_quantify,
