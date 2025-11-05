@@ -145,16 +145,16 @@ class DDNNFCompiler(ABC):
             cnf_format = "cnf" if atoms_to_project == 0 else "pcnf"
             dimacs_out.write(f"p {cnf_format} {total_variables} {total_clauses} {atoms_to_project if atoms_to_project > 0 else ""}\n")
             # second line
-            if important_atoms_labels is not None:
-                line = "c p show "
-                for atom in important_atoms_labels:
+            if projection_atoms and len(projection_atoms) > 0:
+                line = "vp "
+                for atom in projection_atoms:
                     line += f"{atom} "
                 line += "0\n"
                 dimacs_out.write(line)
 
-            if projection_atoms is not None:
-                line = "vp "
-                for atom in projection_atoms:
+            elif important_atoms_labels is not None:
+                line = "c p show "
+                for atom in important_atoms_labels:
                     line += f"{atom} "
                 line += "0\n"
                 dimacs_out.write(line)
