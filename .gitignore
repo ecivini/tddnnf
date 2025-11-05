@@ -129,3 +129,6 @@ tests/test_data/*
 
 # Binaries folder
 src/theorydd/bin/
+
+# Data files
+data
