@@ -11,8 +11,10 @@ from theorydd.solvers.solver import SMTEnumerator
 
 
 def _allsat_callback(model, converter, models):
-    py_model = {converter.back(v) for v in model}
-    models.append(py_model)
+    # Add one model so that the problem is marked as SAT
+    if len(models) == 0:
+        py_model = {converter.back(v) for v in model}
+        models.append(py_model)
     return 1
 
 

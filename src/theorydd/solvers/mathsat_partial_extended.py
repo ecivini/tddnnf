@@ -15,8 +15,14 @@ from theorydd.util.collections import Nested, map_nested
 from theorydd.util.pysmt import SuspendTypeChecking
 
 
-def _allsat_callback(model, converter, models):
-    """callback for all-sat"""
+def _total_allsat_callback(models):
+    """callback for total all-sat"""
+    models += 1
+    return 1
+
+
+def _partial_allsat_callback(model, converter, models):
+    """callback for partial all-sat"""
     py_model = {converter.back(v) for v in model}
     models.append(py_model)
     return 1
@@ -59,7 +65,7 @@ def _parallel_worker(args: tuple) -> tuple:
 
     local_solver.add_assertion(phi)
 
-    total_models = []
+    total_models = 0
     total_lemmas = _contextualize(contextualizer, tlemmas)
 
     next_lemma = 0  # index of the next lemma to be learned
@@ -76,8 +82,8 @@ def _parallel_worker(args: tuple) -> tuple:
         mathsat.msat_all_sat(
             local_solver.msat_env(),
             converted_atoms,
-            callback=lambda model: _allsat_callback(
-                model, local_converter, total_models
+            callback=lambda model: _total_allsat_callback(
+                total_models
             ),
         )
 
@@ -164,7 +170,7 @@ class MathSATExtendedPartialEnumerator(SMTEnumerator):
             self.get_converted_atoms(self._atoms),
             # self.get_converted_atoms(
             #    list(boolean_mapping.keys())),
-            callback=lambda model: _allsat_callback(
+            callback=lambda model: _partial_allsat_callback(
                 model, self._converter, partial_models
             ),
         )
@@ -185,19 +191,19 @@ class MathSATExtendedPartialEnumerator(SMTEnumerator):
                 self.solver_total.add_assertion(And(m))
                 # Theorylemmas added to solver total
                 self.solver_total.add_assertion(And(self._tlemmas))
-                models_total = []
+                models_total = 0  # []
                 mathsat.msat_all_sat(
                     self.solver_total.msat_env(),
                     [self._converter_total.convert(a) for a in self._atoms],
-                    callback=lambda model: _allsat_callback(
-                        model, self._converter_total, models_total
+                    callback=lambda model: _total_allsat_callback(
+                        models_total
                     ),
                 )
                 tlemmas_total = [
                     self._converter_total.back(l)
                     for l in mathsat.msat_get_theory_lemmas(self.solver_total.msat_env())
                 ]
-                self._models += models_total
+                # self._models += models_total
                 self._tlemmas += tlemmas_total
                 self.solver_total.pop()
 
@@ -217,9 +223,9 @@ class MathSATExtendedPartialEnumerator(SMTEnumerator):
             new_tlemmas = []
             with multiprocessing.Pool(processes=parallel_procs) as pool:
                 # Use imap_unordered to process results as they complete
-                for models_batch, lemmas_batch in pool.imap_unordered(_parallel_worker, worker_args):
+                for _, lemmas_batch in pool.imap_unordered(_parallel_worker, worker_args):
                     contextualizer = FormulaContextualizer()
-                    self._models.extend(_contextualize(contextualizer, models_batch))
+                    # self._models.extend(_contextualize(contextualizer, models_batch))
                     new_tlemmas.extend(_contextualize(contextualizer, lemmas_batch))
 
             self._tlemmas.extend(new_tlemmas)

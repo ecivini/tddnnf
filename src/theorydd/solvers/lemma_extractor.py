@@ -44,7 +44,12 @@ def extract(
     if enumerate_true:
         smt_result = smt_solver.enumerate_true(phi)
     else:
-        smt_result = smt_solver.check_all_sat(phi, boolean_mapping, parallel_procs=parallel_procs)
+        projected_atoms = phi.get_atoms()
+        smt_result = smt_solver.check_all_sat(
+            phi, boolean_mapping,
+            parallel_procs=parallel_procs,
+            atoms=projected_atoms
+        )
     elapsed_time = time.time() - start_time
     logger.info("Computed AllSMT in %s seconds", str(elapsed_time))
     computation_logger["All-SMT computation time"] = elapsed_time

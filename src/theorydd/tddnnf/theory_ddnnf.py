@@ -50,13 +50,13 @@ class TheoryDDNNF():
             )
 
         # NORMALIZE PHI
-        phi = self._normalize_input(
+        self.phi = self._normalize_input(
             phi, solver, computation_logger[self.structure_name]
         )
 
         # LOAD LEMMAS
         tlemmas, sat_result = self._load_lemmas(
-            phi,
+            self.phi,
             solver,
             parallel_allsmt_procs,
             tlemmas,
@@ -65,11 +65,15 @@ class TheoryDDNNF():
             computation_logger[self.structure_name],
         )
         self.sat_result = sat_result
-        self.tlemmas = tlemmas
+        self.tlemmas = set()
+        for lemma in tlemmas:
+            lemma_norm = formula.get_normalized(lemma, solver.get_converter())
+            self.tlemmas.add(lemma_norm)
+        self.tlemmas = list(self.tlemmas)
 
         # If store_tlemmas_path is given, store the lemmas to a file
         if store_tlemmas and base_out_path is not None:
-            tlemmas_conjunction = And(tlemmas)
+            tlemmas_conjunction = And(self.tlemmas)
             tlemmas_out_path = os.path.join(base_out_path, "tlemmas.smt2")
             write_smtlib(tlemmas_conjunction, tlemmas_out_path)
 
@@ -81,8 +85,8 @@ class TheoryDDNNF():
         if sat_result == SAT:
             d4 = D4Compiler()
             self.phi_ddnnf, _, _ = d4.compile_dDNNF(
-                phi=phi,
-                tlemmas=tlemmas,
+                phi=self.phi,
+                tlemmas=self.tlemmas,
                 back_to_fnode=True,
                 computation_logger=computation_logger[self.structure_name],
                 save_path=base_out_path
