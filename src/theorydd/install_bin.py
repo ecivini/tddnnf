@@ -17,7 +17,8 @@ class InstallException(Exception):
 C2D_SOURCE = "http://reasoning.cs.ucla.edu/c2d/fetchme.php"
 C2D_DOWNLOAD_ZIP = r"Linux%20i386"
 
-D4_REPO = "https://github.com/crillab/d4v2"
+D4_REPO = "https://github.com/ecivini/d4v2"
+D4_BRANCH = "circuits_with_projected_vars"
 LIBPATOH_DOWNLOAD_TAR = "patoh-Linux-x86_64.tar.gz"
 LIBPATOH_DOWNLOAD_URL = f"https://faculty.cc.gatech.edu/~umit/PaToH/{LIBPATOH_DOWNLOAD_TAR}"
 
@@ -98,7 +99,7 @@ def setup_d4(install_path: str) -> None:
 
     # clone d4 repo
     repo_path = install_path + "/repo"
-    clone_repo(D4_REPO, repo_path)
+    clone_repo(D4_REPO, repo_path, D4_BRANCH)
     os.chdir(repo_path)
 
     # manually install libpatoh.a 
@@ -185,14 +186,14 @@ def clean_repo(repo_path: str) -> None:
         os.system("rm -rdf --interactive=never " + repo_path)
 
 
-def clone_repo(repo_url: str, repo_path: str) -> None:
+def clone_repo(repo_url: str, repo_path: str, branch: str = "main") -> None:
     """clones a git repo"""
     # clean up for cloning
     print(f"Cloning repository {repo_url}...")
     if os.path.exists(repo_path):
         os.system("rm -rdf --interactive=never " + repo_path)
     # clone repo
-    Repo.clone_from(repo_url, repo_path)
+    Repo.clone_from(repo_url, repo_path, branch=branch)
 
 def download_file(url: str, output_path: str) -> None:
     """Downloads a file from a URL to the specified output path"""
