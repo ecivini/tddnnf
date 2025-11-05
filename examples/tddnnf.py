@@ -24,18 +24,11 @@ def main():
     solver = Solver()
     converter = solver.converter
     phi = get_normalized(phi, converter)
-
     tddnnf = get_normalized(tddnnf_builder.phi_ddnnf, converter)
 
     p_atoms = set(phi.get_atoms())
-    missing = set()
-    for t_atom in tddnnf.get_atoms():
-        if t_atom not in p_atoms:
-            print("t_atom not in p_atoms:", t_atom)
-            missing.add(t_atom)
-
-    print("MISSING ATOMS:", missing)
-
+    t_atoms = set(tddnnf.get_atoms())
+    assert t_atoms.issubset(p_atoms)
 
     # USE YOUR t-d-DNNF
     # print("PHI:", phi)
