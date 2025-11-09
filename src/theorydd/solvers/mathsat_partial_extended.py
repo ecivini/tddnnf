@@ -54,7 +54,7 @@ def _parallel_worker(args: tuple) -> tuple:
     Returns:
         tuple of local_models, total_lemmas
     """
-    partial_models, phi, atoms, solver_options_dict_total, tlemmas = args
+    queue, phi, atoms, solver_options_dict_total, tlemmas = args
 
     local_solver = Solver("msat", solver_options=solver_options_dict_total)
     local_converter = local_solver.converter
@@ -71,7 +71,9 @@ def _parallel_worker(args: tuple) -> tuple:
 
     next_lemma = 0  # index of the next lemma to be learned
 
-    for model in partial_models:
+    while not queue.empty():
+        model = queue.get()
+
         local_solver.add_assertions(itertools.islice(total_lemmas, next_lemma, None))
         next_lemma = len(total_lemmas)
 
@@ -183,7 +185,7 @@ class MathSATExtendedPartialEnumerator(SMTEnumerator):
             self._converter.back(l)
             for l in mathsat.msat_get_theory_lemmas(self.solver.msat_env())
         ]
-        
+
         end_time = time.time()
         if computation_logger is not None:
             computation_logger["Partial AllSMT time"] = end_time - start_time
@@ -218,14 +220,15 @@ class MathSATExtendedPartialEnumerator(SMTEnumerator):
 
         else:
             # Create shared list for lemmas that can be updated by workers
-            # manager = multiprocessing.Manager()
+            manager = multiprocessing.Manager()
+            queue = manager.Queue()
+            for model in partial_models:
+                queue.put(model)
 
             # Prepare arguments for each worker
-            chunks_size = (len(partial_models) // parallel_procs) + 1
-            partial_models_chunks = itertools.batched(partial_models, chunks_size)
             worker_args = [
-                (chunk, phi, self._atoms, self.solver_options_dict_total, self._tlemmas)
-                for chunk in partial_models_chunks
+                (queue, phi, self._atoms, self.solver_options_dict_total, self._tlemmas)
+                for _ in range(parallel_procs)
             ]
 
             # Use a process pool to maintain constant number of workers  
