@@ -1,6 +1,7 @@
 """this module handles interactions with the mathsat solver"""
 import itertools
 import multiprocessing
+import time
 from typing import Dict, List
 
 import mathsat
@@ -140,7 +141,9 @@ class MathSATExtendedPartialEnumerator(SMTEnumerator):
         self._atoms = []
 
     def check_all_sat(
-            self, phi: FNode, boolean_mapping: Dict[FNode, FNode] | None = None, parallel_procs: int = 1, atoms: List[FNode] | None = None
+            self, phi: FNode, boolean_mapping: Dict[FNode, FNode] | None = None, 
+            parallel_procs: int = 1, atoms: List[FNode] | None = None,
+            computation_logger: dict | None = None
     ) -> bool:
         """Computes All-SMT for the SMT-formula phi using partial assignment and Tsetsin CNF-ization
 
@@ -165,6 +168,7 @@ class MathSATExtendedPartialEnumerator(SMTEnumerator):
         self.solver.add_assertion(phi_tsetsin)
 
         partial_models = []
+        start_time = time.time()
         mathsat.msat_all_sat(
             self.solver.msat_env(),
             self.get_converted_atoms(self._atoms),
@@ -179,6 +183,11 @@ class MathSATExtendedPartialEnumerator(SMTEnumerator):
             self._converter.back(l)
             for l in mathsat.msat_get_theory_lemmas(self.solver.msat_env())
         ]
+        
+        end_time = time.time()
+        if computation_logger is not None:
+            computation_logger["Partial AllSMT time"] = end_time - start_time
+            computation_logger["Partial models"] = len(partial_models)
 
         if len(partial_models) == 0:
             return UNSAT

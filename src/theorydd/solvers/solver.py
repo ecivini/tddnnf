@@ -24,7 +24,8 @@ class SMTEnumerator(ABC):
         phi: FNode,
         boolean_mapping: Dict | None = None,
         parallel_procs: int = 1,
-        atoms: List[FNode] | None = None
+        atoms: List[FNode] | None = None,
+        computation_logger: Dict | None = None
     ) -> bool:
         """check T-satisfiability of a formula"""
         pass
