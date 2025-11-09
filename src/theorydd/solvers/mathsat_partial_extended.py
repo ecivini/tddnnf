@@ -71,9 +71,11 @@ def _parallel_worker(args: tuple) -> tuple:
 
     next_lemma = 0  # index of the next lemma to be learned
 
-    while not queue.empty():
-        model = queue.get()
-
+    if queue.empty():
+        return total_models, total_lemmas
+    
+    model = queue.get()
+    while model is not None:
         local_solver.add_assertions(itertools.islice(total_lemmas, next_lemma, None))
         next_lemma = len(total_lemmas)
 
@@ -96,6 +98,8 @@ def _parallel_worker(args: tuple) -> tuple:
         ]
 
         local_solver.pop()
+
+        model = queue.get()
 
     return total_models, total_lemmas
 
@@ -224,6 +228,9 @@ class MathSATExtendedPartialEnumerator(SMTEnumerator):
             queue = manager.Queue()
             for model in partial_models:
                 queue.put(model)
+
+            for _ in range(parallel_procs):
+                queue.put(None)  # Mark the end of the queue for each worker
 
             # Prepare arguments for each worker
             worker_args = [
