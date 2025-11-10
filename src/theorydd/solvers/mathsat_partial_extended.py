@@ -16,9 +16,6 @@ from theorydd.util.collections import Nested, map_nested
 from theorydd.util.pysmt import SuspendTypeChecking
 
 
-_PARTIAL_MODELS_QUEUE = multiprocessing.Queue()
-
-
 def _total_allsat_callback(models):
     """callback for total all-sat"""
     models += 1
@@ -48,6 +45,32 @@ def _contextualize(
         return map_nested(lambda f: contextualizer.walk(f), formulas)
 
 
+_PARTIAL_MODELS = []
+_TLEMMAS = []
+_PHI = None
+_PHI_ATOMS = []
+_SOLVER = None
+
+
+def _initialize_worker(
+    partial_models: List[List[FNode]],
+    phi: FNode,
+    phi_atoms: List[FNode],
+    tlemmas: List[FNode],
+    solver_options: dict
+) -> None:
+    global _PARTIAL_MODELS, _PHI, _TLEMMAS, _SOLVER, _PHI_ATOMS
+
+    _PARTIAL_MODELS = partial_models
+    _TLEMMAS = tlemmas
+    _PHI = phi
+    _PHI_ATOMS = phi_atoms
+    _SOLVER = Solver(
+        "msat",
+        solver_options=solver_options
+    )
+
+
 def _parallel_worker(args: tuple) -> tuple:
     """Worker function for parallel all-smt extension
     
@@ -57,57 +80,51 @@ def _parallel_worker(args: tuple) -> tuple:
     Returns:
         tuple of local_models, total_lemmas
     """
-    global _PARTIAL_MODELS_QUEUE
+    global _SOLVER, _TLEMMAS, _PHI, _PHI_ATOMS, _PARTIAL_MODELS
 
-    partial_models, phi, atoms, solver_options_dict_total, tlemmas = args
+    model_id, = args
 
-    local_solver = Solver("msat", solver_options=solver_options_dict_total)
+    local_solver = _SOLVER
     local_converter = local_solver.converter
 
     contextualizer = FormulaContextualizer()
-    phi = _contextualize(contextualizer, phi)
-    atoms = _contextualize(contextualizer, atoms)
+    phi = _contextualize(contextualizer, _PHI)
+    atoms = _contextualize(contextualizer, _PHI_ATOMS)
     converted_atoms = [local_converter.convert(a) for a in atoms]
 
     local_solver.add_assertion(phi)
 
     total_models = 0
-    total_lemmas = _contextualize(contextualizer, tlemmas)
-
-    next_lemma = 0  # index of the next lemma to be learned
-
-    if _PARTIAL_MODELS_QUEUE.empty():
-        return total_models, total_lemmas
+    total_lemmas = _contextualize(contextualizer, _TLEMMAS)
     
-    model_id = _PARTIAL_MODELS_QUEUE.get()
-    while model_id is not None:
-        model = partial_models[model_id]
-        local_solver.add_assertions(itertools.islice(total_lemmas, next_lemma, None))
-        next_lemma = len(total_lemmas)
+    model = _PARTIAL_MODELS[model_id]
 
-        local_solver.push()
+    local_solver.add_assertions(total_lemmas)
 
-        model = _contextualize(contextualizer, model)
-        local_solver.add_assertions(model)
+    local_solver.push()
 
-        mathsat.msat_all_sat(
-            local_solver.msat_env(),
-            converted_atoms,
-            callback=lambda model: _total_allsat_callback(
-                total_models
-            ),
-        )
+    model = _contextualize(contextualizer, model)
+    local_solver.add_assertions(model)
 
-        total_lemmas += [
-            local_converter.back(l)
-            for l in mathsat.msat_get_theory_lemmas(local_solver.msat_env())
-        ]
+    mathsat.msat_all_sat(
+        local_solver.msat_env(),
+        converted_atoms,
+        callback=lambda model: _total_allsat_callback(
+            total_models
+        ),
+    )
 
-        local_solver.pop()
+    found_tlemmas = [
+        local_converter.back(l)
+        for l in mathsat.msat_get_theory_lemmas(local_solver.msat_env())
+    ]
 
-        model_id = _PARTIAL_MODELS_QUEUE.get()
+    # It's way faster with this line commented out
+    # _TLEMMAS.extend(found_tlemmas) 
 
-    return total_models, total_lemmas
+    local_solver.pop()
+
+    return total_models, found_tlemmas
 
 
 class MathSATExtendedPartialEnumerator(SMTEnumerator):
@@ -229,29 +246,35 @@ class MathSATExtendedPartialEnumerator(SMTEnumerator):
                 self.solver_total.pop()
 
         else:
-            # Create shared list for lemmas that can be updated by workers
-            for i in range(len(partial_models)):
-                _PARTIAL_MODELS_QUEUE.put(i)
-
-            for _ in range(parallel_procs):
-                _PARTIAL_MODELS_QUEUE.put(None)  # Mark the end of the queue for each worker
-
             # Prepare arguments for each worker
             worker_args = [
-                (partial_models, phi, self._atoms, self.solver_options_dict_total, self._tlemmas)
-                for _ in range(parallel_procs)
+                (i, )
+                for i in range(len(partial_models))
             ]
 
             # Use a process pool to maintain constant number of workers  
             new_tlemmas = []
-            with multiprocessing.Pool(processes=parallel_procs) as pool:
+            pool = multiprocessing.Pool(
+                processes=parallel_procs,
+                initializer=_initialize_worker,
+                initargs=(
+                    partial_models,
+                    phi,
+                    self._atoms,
+                    self._tlemmas,
+                    self.solver_options_dict_total
+                )
+            )
+            with pool:
                 # Use imap_unordered to process results as they complete
                 for _, lemmas_batch in pool.imap_unordered(_parallel_worker, worker_args):
                     contextualizer = FormulaContextualizer()
                     # self._models.extend(_contextualize(contextualizer, models_batch))
                     new_tlemmas.extend(_contextualize(contextualizer, lemmas_batch))
 
-            self._tlemmas.extend(new_tlemmas)
+                
+
+            self._tlemmas.extend(list(set(new_tlemmas)))
 
         return SAT
 
