@@ -59,7 +59,7 @@ def _parallel_worker(args: tuple) -> tuple:
     """
     global _PARTIAL_MODELS_QUEUE
 
-    phi, atoms, solver_options_dict_total, tlemmas = args
+    partial_models, phi, atoms, solver_options_dict_total, tlemmas = args
 
     local_solver = Solver("msat", solver_options=solver_options_dict_total)
     local_converter = local_solver.converter
@@ -79,8 +79,9 @@ def _parallel_worker(args: tuple) -> tuple:
     if _PARTIAL_MODELS_QUEUE.empty():
         return total_models, total_lemmas
     
-    model = _PARTIAL_MODELS_QUEUE.get()
-    while model is not None:
+    model_id = _PARTIAL_MODELS_QUEUE.get()
+    while model_id is not None:
+        model = partial_models[model_id]
         local_solver.add_assertions(itertools.islice(total_lemmas, next_lemma, None))
         next_lemma = len(total_lemmas)
 
@@ -104,7 +105,7 @@ def _parallel_worker(args: tuple) -> tuple:
 
         local_solver.pop()
 
-        model = _PARTIAL_MODELS_QUEUE.get()
+        model_id = _PARTIAL_MODELS_QUEUE.get()
 
     return total_models, total_lemmas
 
@@ -229,15 +230,15 @@ class MathSATExtendedPartialEnumerator(SMTEnumerator):
 
         else:
             # Create shared list for lemmas that can be updated by workers
-            for model in partial_models:
-                _PARTIAL_MODELS_QUEUE.put(model)
+            for i in range(len(partial_models)):
+                _PARTIAL_MODELS_QUEUE.put(i)
 
             for _ in range(parallel_procs):
                 _PARTIAL_MODELS_QUEUE.put(None)  # Mark the end of the queue for each worker
 
             # Prepare arguments for each worker
             worker_args = [
-                (phi, self._atoms, self.solver_options_dict_total, self._tlemmas)
+                (partial_models, phi, self._atoms, self.solver_options_dict_total, self._tlemmas)
                 for _ in range(parallel_procs)
             ]
 
