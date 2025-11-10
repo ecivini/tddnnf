@@ -16,6 +16,9 @@ from theorydd.util.collections import Nested, map_nested
 from theorydd.util.pysmt import SuspendTypeChecking
 
 
+_PARTIAL_MODELS_QUEUE = multiprocessing.Queue()
+
+
 def _total_allsat_callback(models):
     """callback for total all-sat"""
     models += 1
@@ -54,7 +57,9 @@ def _parallel_worker(args: tuple) -> tuple:
     Returns:
         tuple of local_models, total_lemmas
     """
-    queue, phi, atoms, solver_options_dict_total, tlemmas = args
+    global _PARTIAL_MODELS_QUEUE
+
+    phi, atoms, solver_options_dict_total, tlemmas = args
 
     local_solver = Solver("msat", solver_options=solver_options_dict_total)
     local_converter = local_solver.converter
@@ -71,10 +76,10 @@ def _parallel_worker(args: tuple) -> tuple:
 
     next_lemma = 0  # index of the next lemma to be learned
 
-    if queue.empty():
+    if _PARTIAL_MODELS_QUEUE.empty():
         return total_models, total_lemmas
     
-    model = queue.get()
+    model = _PARTIAL_MODELS_QUEUE.get()
     while model is not None:
         local_solver.add_assertions(itertools.islice(total_lemmas, next_lemma, None))
         next_lemma = len(total_lemmas)
@@ -99,7 +104,7 @@ def _parallel_worker(args: tuple) -> tuple:
 
         local_solver.pop()
 
-        model = queue.get()
+        model = _PARTIAL_MODELS_QUEUE.get()
 
     return total_models, total_lemmas
 
@@ -224,17 +229,15 @@ class MathSATExtendedPartialEnumerator(SMTEnumerator):
 
         else:
             # Create shared list for lemmas that can be updated by workers
-            manager = multiprocessing.Manager()
-            queue = manager.Queue()
             for model in partial_models:
-                queue.put(model)
+                _PARTIAL_MODELS_QUEUE.put(model)
 
             for _ in range(parallel_procs):
-                queue.put(None)  # Mark the end of the queue for each worker
+                _PARTIAL_MODELS_QUEUE.put(None)  # Mark the end of the queue for each worker
 
             # Prepare arguments for each worker
             worker_args = [
-                (queue, phi, self._atoms, self.solver_options_dict_total, self._tlemmas)
+                (phi, self._atoms, self.solver_options_dict_total, self._tlemmas)
                 for _ in range(parallel_procs)
             ]
 
