@@ -45,7 +45,8 @@ class MathSATPartialEnumerator(SMTEnumerator):
 
     def check_all_sat(
         self, phi: FNode, boolean_mapping: Dict[FNode, FNode] | None = None,
-        parallel_procs: int = 1, computation_logger: Dict | None = None
+        parallel_procs: int = 1, computation_logger: Dict | None = None,
+        atoms: List[FNode] | None = None,
     ) -> bool:
         """Computes All-SMT for the SMT-formula phi generating partial assignments and using Tsetsin CNF-ization
 
@@ -60,9 +61,7 @@ class MathSATPartialEnumerator(SMTEnumerator):
         self._last_phi = phi
         self._tlemmas = []
         self._models = []
-        self._atoms = []
-
-        self._atoms = phi.get_atoms()
+        self._atoms = phi.get_atoms() if not atoms else atoms
 
         self.solver.reset_assertions()
         phi_tsetsin = PolarityCNFizer(
