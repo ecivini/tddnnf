@@ -1,0 +1,60 @@
+c BC-S1.2
+I v1
+I v2
+I v3
+I v4
+I v5
+I v6
+I v7
+I v8
+I v9
+I v10
+I v11
+I v12
+I v13
+I v14
+G g1 := O v19 -v12
+G g2 := O -v14 g1
+G g3 := O -v22 g2
+G g4 := O -v12 -v23
+G g5 := O g4 -v14
+G g6 := O -v22 g5
+G g7 := O -v11 -v19
+G g8 := O -v9 g7
+G g9 := O v23 -v11
+G g10 := O g9 -v9
+G g11 := O -v11 -v13
+G g12 := O -v12 -v10
+G g13 := O -v27 -v22
+G g14 := O -v19 -v23
+G g15 := O v1 g14
+G g16 := O -v23 -v19
+G g17 := O v1 g16
+G g18 := O -v29 -v28
+G g19 := O v27 g18
+G g20 := O v14 -v31
+G g21 := O g20 -v30
+G g22 := O -v22 v29
+G g23 := O -v22 -v28
+G g24 := O -v14 v30
+G g25 := O -v14 v31
+G g26 := O v27 -v28
+G g27 := O g26 -v29
+G g28 := O v14 -v30
+G g29 := O g28 -v31
+G g30 := O -v27 v29
+G g31 := O -v27 v28
+G g32 := O v19 v23
+G g33 := O v19 v30
+G g34 := O -v13 g33
+G g35 := O v30 v31
+G g36 := O v1 -v23
+G g37 := O -v19 g36
+G g38 := A v22 v14
+G g39 := O v27 g38
+G g40 := A v12 v13
+G g41 := A v10 v11
+G g42 := O g41 g40
+G g43 := A v4 v5 v6 v7 v8 v9 g42 g39 -v1
+G g44 := A g43 g15 g13 g12 g11 g10 g8 g6 g3 g25 g24 g23 g22 g21 g19 g37 g15 g13 g12 g11 g10 g8 g6 g3 g25 g24 g35 g31 g30 g29 g27 g17 g15 g13 g12 g11 g10 g8 g6 g3 g25 g24 g34 g32 g31 g30 g29 g27 g17 g15 g13 g12 g11 g10 g8 g6 g3 g25 g24 g23 g22 g21 g19 g17 g15 g13 g12 g11 g10 g8 g6 g3
+T g44

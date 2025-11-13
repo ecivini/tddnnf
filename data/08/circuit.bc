@@ -1,0 +1,93 @@
+c BC-S1.2
+I v1
+I v2
+I v3
+I v4
+I v5
+I v6
+I v7
+I v8
+I v9
+I v10
+I v11
+I v12
+I v13
+I v14
+I v15
+I v16
+I v17
+I v18
+I v19
+I v20
+I v21
+I v22
+I v23
+I v24
+I v25
+I v26
+I v27
+I v28
+I v29
+P v1 v2 v3 v4 v5 v6 v7 v8 v9 v10 v11 v12 v13 v14 v15 v16 v17 v18 v19 v20 v21 v22 v23 v24 v25 v26 v27 v28 v29
+G g1 := O v6 -v33
+G g2 := O g1 -v32
+G g3 := O v3 -v41
+G g4 := O g3 -v40
+G g5 := O v5 -v45
+G g6 := O g5 -v44
+G g7 := O -v6 v32
+G g8 := O -v6 v33
+G g9 := O -v5 v44
+G g10 := O -v5 v45
+G g11 := O v19 -v59
+G g12 := O g11 -v58
+G g13 := O v7 -v63
+G g14 := O g13 -v62
+G g15 := O v11 -v68
+G g16 := O g15 -v67
+G g17 := O v13 -v72
+G g18 := O g17 -v71
+G g19 := O v16 -v75
+G g20 := O g19 -v74
+G g21 := O v4 -v81
+G g22 := O g21 -v80
+G g23 := O v2 -v87
+G g24 := O g23 -v86
+G g25 := O -v16 v74
+G g26 := O -v16 v75
+G g27 := O -v13 v71
+G g28 := O -v3 v40
+G g29 := O -v13 v72
+G g30 := O -v3 v41
+G g31 := O -v11 v67
+G g32 := O -v11 v68
+G g33 := O -v7 v62
+G g34 := O -v7 v63
+G g35 := O v88 -v2
+G g36 := O g35 -v3
+G g37 := O g36 -v4
+G g38 := O g37 -v6
+G g39 := O -v5 g38
+G g40 := O -v19 v58
+G g41 := O -v19 v59
+G g42 := O v89 -v19
+G g43 := O g42 -v7
+G g44 := O g43 -v11
+G g45 := O g44 -v13
+G g46 := O g45 -v16
+G g47 := O -v4 v80
+G g48 := O v25 -v5
+G g49 := O -v24 -v5
+G g50 := O -v4 v81
+G g51 := O -v2 v86
+G g52 := O -v2 v87
+G g53 := O -v25 -v24
+G g54 := O --v89 v117
+G g55 := O -v89 v116
+G g56 := A g54 g55
+G g57 := O --v24 v133
+G g58 := O -v24 v131
+G g59 := A g57 g58
+G g60 := A v5 v6 v23 v22 v14 v12 v10 v9 v21 v16 v13 v11 v8 v7 v19 v4 v3 v2 v18 v1 v17 v29 v20 -v28 -v27 -v26 g53 v15
+G g61 := A g60 g52 g51 g50 g49 g48 g47 g46 g41 g40 g39 g34 g33 g32 g31 g30 g29 g28 g27 g26 g25 g24 g22 g20 g18 g16 g14 g12 g10 g9 g8 g7 g6 g4 g2
+T g61

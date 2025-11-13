@@ -1,0 +1,6 @@
+(set-logic QF_UF)
+(declare-fun a () Bool)
+(declare-fun b () Bool)
+(declare-fun c () Bool)
+(assert (let ((.def_0 (and a b true))) (let ((.def_1 (not b))) (let ((.def_2 (and a .def_1 true))) (let ((.def_3 (not c))) (let ((.def_4 (and .def_3 .def_2))) (let ((.def_5 (or .def_4 .def_0))) .def_5)))))))
+(check-sat)

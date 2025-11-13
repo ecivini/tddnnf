@@ -1,0 +1,6 @@
+c BC-S1.2
+I v1
+P v1
+G g1 := O v1 -v1
+G g2 := A v1 g1
+T g2

@@ -1,0 +1,7 @@
+(set-logic QF_BOOL)
+(declare-fun a () Bool)
+(declare-fun b () Bool)
+(declare-fun c () Bool)
+(assert (or (and a b) (not c)))
+(check-sat)
+(get-model)

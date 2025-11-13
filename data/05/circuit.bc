@@ -1,0 +1,23 @@
+c BC-S1.2
+I v1
+I v2
+I v3
+I v4
+I v5
+I v6
+I v7
+G g1 := O -v7
+G g2 := O -v5 g1
+G g3 := O -v3 g2
+G g4 := O -v7
+G g5 := O -v5 g4
+G g6 := O g5 -v3
+G g7 := O -v6
+G g8 := O g7 -v5
+G g9 := O g8 -v4
+G g10 := O v6 v7
+G g11 := A v3 v4
+G g12 := A v1 v2
+G g13 := A g12 g11 v5 g10
+G g14 := A g13 g9 g6 g3
+T g14
