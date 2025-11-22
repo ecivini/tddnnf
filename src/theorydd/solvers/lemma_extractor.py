@@ -16,6 +16,7 @@ def extract(
     use_boolean_mapping: bool = True,
     computation_logger: Dict = None,
     parallel_procs: int = 1,
+    atoms: List[FNode] | None = None
 ) -> Tuple[bool, List[FNode], Dict[FNode,FNode] | None]:
     """extract lemmas from a SMT-formula
 
@@ -44,11 +45,10 @@ def extract(
     if enumerate_true:
         smt_result = smt_solver.enumerate_true(phi)
     else:
-        projected_atoms = phi.get_atoms()
         smt_result = smt_solver.check_all_sat(
             phi, boolean_mapping,
             parallel_procs=parallel_procs,
-            atoms=projected_atoms,
+            atoms=atoms,
             computation_logger=computation_logger
         )
     elapsed_time = time.time() - start_time

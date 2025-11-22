@@ -61,7 +61,7 @@ class MathSATPartialEnumerator(SMTEnumerator):
         self._last_phi = phi
         self._tlemmas = []
         self._models = []
-        self._atoms = phi.get_atoms() if not atoms else atoms
+        self._atoms = self.get_theory_atoms(phi) if not atoms else atoms
 
         self.solver.reset_assertions()
         phi_tsetsin = PolarityCNFizer(

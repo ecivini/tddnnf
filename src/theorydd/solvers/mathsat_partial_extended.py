@@ -18,7 +18,9 @@ from theorydd.util.pysmt import SuspendTypeChecking
 
 def _total_allsat_callback(models):
     """callback for total all-sat"""
-    models += 1
+    # We cannot pass an int as it would be copied by value, so we
+    # use a list with just one element, which is the number of models
+    models[0] += 1
     return 1
 
 
@@ -94,7 +96,7 @@ def _parallel_worker(args: tuple) -> tuple:
 
     local_solver.add_assertion(phi)
 
-    total_models = 0
+    total_models = [0]
     total_lemmas = _contextualize(contextualizer, _TLEMMAS)
     
     model = _PARTIAL_MODELS[model_id]
@@ -124,7 +126,7 @@ def _parallel_worker(args: tuple) -> tuple:
 
     local_solver.pop()
 
-    return total_models, found_tlemmas
+    return total_models[0], found_tlemmas
 
 
 class MathSATExtendedPartialEnumerator(SMTEnumerator):
@@ -164,7 +166,7 @@ class MathSATExtendedPartialEnumerator(SMTEnumerator):
         self.solver_total = Solver("msat", solver_options=self.solver_options_dict_total)
         self._last_phi = None
         self._tlemmas = []
-        self._models = []
+        self._models = 0
         self._converter = self.solver.converter
         self._converter_total = self.solver_total.converter
         self._atoms = []
@@ -187,7 +189,7 @@ class MathSATExtendedPartialEnumerator(SMTEnumerator):
         self._last_phi = phi
         self._tlemmas = []
         self._models = []
-        self._atoms = atoms if atoms is not None else phi.get_atoms()
+        self._atoms = self.get_theory_atoms(phi) if not atoms else atoms
 
         self.solver.reset_assertions()
         self.solver_total.reset_assertions()
@@ -222,14 +224,14 @@ class MathSATExtendedPartialEnumerator(SMTEnumerator):
             return UNSAT
 
         self.solver_total.add_assertion(phi)
-        self._models = []
+        self._models = 0
         if parallel_procs <= 1:
             for m in partial_models:
                 self.solver_total.push()
                 self.solver_total.add_assertion(And(m))
                 # Theorylemmas added to solver total
                 self.solver_total.add_assertion(And(self._tlemmas))
-                models_total = 0  # []
+                models_total = [0]  # []
                 mathsat.msat_all_sat(
                     self.solver_total.msat_env(),
                     [self._converter_total.convert(a) for a in self._atoms],
@@ -241,7 +243,7 @@ class MathSATExtendedPartialEnumerator(SMTEnumerator):
                     self._converter_total.back(l)
                     for l in mathsat.msat_get_theory_lemmas(self.solver_total.msat_env())
                 ]
-                # self._models += models_total
+                self._models = models_total[0]
                 self._tlemmas += tlemmas_total
                 self.solver_total.pop()
 
@@ -267,14 +269,15 @@ class MathSATExtendedPartialEnumerator(SMTEnumerator):
             )
             with pool:
                 # Use imap_unordered to process results as they complete
-                for _, lemmas_batch in pool.imap_unordered(_parallel_worker, worker_args):
+                for (models_num, lemmas_batch) in pool.imap_unordered(_parallel_worker, worker_args):
                     contextualizer = FormulaContextualizer()
-                    # self._models.extend(_contextualize(contextualizer, models_batch))
-                    new_tlemmas.extend(_contextualize(contextualizer, lemmas_batch))
-
-                
+                    self._models += models_num
+                    new_tlemmas.extend(_contextualize(contextualizer, lemmas_batch))                
 
             self._tlemmas.extend(list(set(new_tlemmas)))
+
+        if computation_logger is not None:
+            computation_logger["Total models"] = self._models
 
         return SAT
 

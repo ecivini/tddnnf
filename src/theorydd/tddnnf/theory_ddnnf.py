@@ -20,6 +20,7 @@ class TheoryDDNNF():
     def __init__(
         self, 
         phi: FNode, 
+        atoms: List[FNode] | None = None,
         solver: MathSATExtendedPartialEnumerator | None = None,
         base_out_path: str | None = None,
         tlemmas: List[FNode] | None = None,
@@ -59,6 +60,7 @@ class TheoryDDNNF():
             self.phi,
             solver,
             parallel_allsmt_procs,
+            atoms,
             tlemmas,
             load_lemmas,
             sat_result,
@@ -84,13 +86,15 @@ class TheoryDDNNF():
         # Compile to d-DNNF
         if sat_result == SAT:
             d4 = D4Compiler()
-            self.phi_ddnnf, _, _ = d4.compile_dDNNF(
+            self.phi_ddnnf, nodes, edges = d4.compile_dDNNF(
                 phi=self.phi,
                 tlemmas=self.tlemmas,
                 back_to_fnode=True,
                 computation_logger=computation_logger[self.structure_name],
                 save_path=base_out_path
             )
+            computation_logger[self.structure_name]["DD nodes"] = nodes
+            computation_logger[self.structure_name]["DD edges"] = edges
 
             if base_out_path is not None:
                 # Store the d-DNNF to a file
@@ -119,6 +123,7 @@ class TheoryDDNNF():
         phi: FNode,
         smt_solver: SMTEnumerator,
         parallel_procs: int,
+        atoms: List[FNode] | None,
         tlemmas: List[FNode] | None,
         load_lemmas: str | None,
         sat_result: bool | None,
@@ -139,7 +144,8 @@ class TheoryDDNNF():
                 phi,
                 smt_solver,
                 computation_logger=computation_logger,
-                parallel_procs=parallel_procs
+                parallel_procs=parallel_procs,
+                atoms=atoms,
             )
         # tlemmas = list(
         #     map(

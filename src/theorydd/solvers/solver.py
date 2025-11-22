@@ -1,7 +1,7 @@
 """interface that all solvers must implement."""
 
 from abc import ABC, abstractmethod
-from typing import Dict, Iterable, List
+from typing import Dict, Set, List
 
 from pysmt.fnode import FNode
 from theorydd.constants import SAT, UNSAT
@@ -44,6 +44,13 @@ class SMTEnumerator(ABC):
     def get_models(self) -> List:
         """return the list of models"""
         pass
+
+    def get_theory_atoms(self, phi: FNode) -> Set[FNode]:
+        atoms = set()
+        for atom in phi.get_atoms():
+            if not atom.get_type().is_bool_type():
+                atoms.add(atom)
+        return atoms
 
     def enumerate_true(self, phi: FNode, stop_at_unsat: bool = False) -> bool:
         """enumerate all lemmas on the formula phi

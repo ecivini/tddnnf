@@ -11,10 +11,7 @@ from theorydd.solvers.solver import SMTEnumerator
 
 
 def _allsat_callback(model, converter, models):
-    # Add one model so that the problem is marked as SAT
-    if len(models) == 0:
-        py_model = {converter.back(v) for v in model}
-        models.append(py_model)
+    models[0] += 1
     return 1
 
 
@@ -39,7 +36,7 @@ class MathSATTotalEnumerator(SMTEnumerator):
         self.solver = Solver("msat", solver_options=solver_options_dict)
         self._last_phi = None
         self._tlemmas = []
-        self._models = []
+        self._models = 0
         self._converter = self.solver.converter
         self._atoms = []
 
@@ -60,8 +57,8 @@ class MathSATTotalEnumerator(SMTEnumerator):
         """
         self._last_phi = phi
         self._tlemmas = []
-        self._models = []
-        self._atoms = atoms if atoms is not None else phi.get_atoms()
+        self._models = [0]
+        self._atoms = self.get_theory_atoms(phi) if not atoms else atoms
 
         self.solver.reset_assertions()
         self.solver.add_assertion(phi)
@@ -70,7 +67,6 @@ class MathSATTotalEnumerator(SMTEnumerator):
             for k, v in boolean_mapping.items():
                 self.solver.add_assertion(Iff(k, v))
 
-        self._models = []
         if boolean_mapping is not None:
             phi_symbols: List[FNode] = get_symbols(phi)
             phi_symbols = list(filter(lambda x: x.get_type() == BOOL, phi_symbols))
@@ -98,17 +94,21 @@ class MathSATTotalEnumerator(SMTEnumerator):
             for l in mathsat.msat_get_theory_lemmas(self.solver.msat_env())
         ]
 
-        if len(self._models) == 0:
+        if self._models[0] == 0:
             return UNSAT
+        
+        if computation_logger is not None:
+            computation_logger["Total models"] = self._models[0]
+
         return SAT
 
     def get_theory_lemmas(self) -> List[FNode]:
         """Returns the theory lemmas found during the All-SAT computation"""
         return self._tlemmas
 
-    def get_models(self) -> List:
+    def get_models(self) -> int:
         """Returns the models found during the All-SAT computation"""
-        return self._models
+        return self._models[0]
 
     def get_converter(self) -> object:
         """Returns the converter used for the normalization of T-atoms"""
