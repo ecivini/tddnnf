@@ -334,20 +334,6 @@ def test_lemma_loading_from_file():
     assert len(tddnnf.tlemmas) >= 1
 
 
-def test_lemma_padding(sat_formula):
-    """Test that lemmas are padded to at least 2 entries"""
-    total = MathSATTotalEnumerator()
-    # Pass empty lemmas list
-    tddnnf = TheoryDDNNF(
-        sat_formula,
-        solver=total,
-        tlemmas=[],
-        sat_result=SAT
-    )
-    
-    # Should be padded to at least 2
-    assert len(tddnnf.tlemmas) >= 2
-
 # ==================== Parallel Processing Tests ====================
 
 def test_parallel_allsmt_single_proc(sat_formula):

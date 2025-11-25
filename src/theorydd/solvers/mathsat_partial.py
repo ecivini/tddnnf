@@ -46,7 +46,7 @@ class MathSATPartialEnumerator(SMTEnumerator):
     def check_all_sat(
         self, phi: FNode, boolean_mapping: Dict[FNode, FNode] | None = None,
         parallel_procs: int = 1, computation_logger: Dict | None = None,
-        atoms: List[FNode] | None = None,
+        atoms: List[FNode] | None = None, store_models: bool = False
     ) -> bool:
         """Computes All-SMT for the SMT-formula phi generating partial assignments and using Tsetsin CNF-ization
 

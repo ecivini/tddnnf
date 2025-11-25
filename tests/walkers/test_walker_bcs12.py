@@ -27,6 +27,7 @@ from theorydd.walkers.walker_bcs12 import BCS12Walker
 from theorydd.util.custom_exceptions import UnsupportedNodeException
 
 
+# TODO: Rimuovi phi_atoms in quanto non piu in uso
 class TestBCS12Walker:
     """Test suite for BCS12Walker"""
 
@@ -34,8 +35,7 @@ class TestBCS12Walker:
         """Test that symbols are properly mapped"""
         a = Symbol("A", BOOL)
         abstraction = {}
-        phi_atoms = frozenset([a])
-        walker = BCS12Walker(abstraction, phi_atoms)
+        walker = BCS12Walker(abstraction)
 
         result = walker.walk(a)
 
@@ -556,14 +556,6 @@ class TestBCS12Walker:
         # Should produce multiple gates
         assert walker.gate_counter >= 3
         assert result.startswith("g")
-
-    def test_phi_atoms_parameter_used(self):
-        """Test that phi_atoms parameter is stored"""
-        a = Symbol("A", BOOL)
-        phi_atoms = frozenset([a])
-        walker = BCS12Walker({}, phi_atoms)
-
-        assert walker.phi_atoms == phi_atoms
 
     def test_invalidate_memoization_parameter(self):
         """Test that invalidate_memoization parameter is passed correctly"""

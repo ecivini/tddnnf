@@ -16,9 +16,9 @@ def test_init_default():
         LT(Symbol("Zr", REAL), Symbol("X", REAL)),
     )
     partial = MathSATExtendedPartialEnumerator()
-    partial.check_all_sat(phi, None)
+    partial.check_all_sat(phi, None, store_models=True)
     models = partial.get_models()
-    tsdd = TheorySDD(phi, "partial")
+    tsdd = TheorySDD(phi, "total")
     assert tsdd.count_nodes() > 1, "TSDD is not only True or False node"
     assert tsdd.count_models() == len(
         models
@@ -33,10 +33,10 @@ def test_init_with_known_lemmas():
         LT(Symbol("Zr", REAL), Symbol("X", REAL)),
     )
     partial = MathSATExtendedPartialEnumerator()
-    partial.check_all_sat(phi, None)
+    partial.check_all_sat(phi, None, store_models=True)
     lemmas = partial.get_theory_lemmas()
     models = partial.get_models()
-    tsdd = TheorySDD(phi, "partial", tlemmas=lemmas)
+    tsdd = TheorySDD(phi, "total", tlemmas=lemmas)
     assert tsdd.count_nodes() > 1, "TSDD is not only True or False node"
     assert tsdd.count_models() == len(
         models
@@ -51,12 +51,12 @@ def test_init_updated_computation_logger():
         LT(Symbol("Zr", REAL), Symbol("X", REAL)),
     )
     partial = MathSATExtendedPartialEnumerator()
-    partial.check_all_sat(phi, None)
+    partial.check_all_sat(phi, None, store_models=True)
     models = partial.get_models()
     logger = {}
     logger["hi"] = "hello"
     copy_logger = deepcopy(logger)
-    tsdd = TheorySDD(phi, "partial", computation_logger=logger)
+    tsdd = TheorySDD(phi, "total", computation_logger=logger)
     assert tsdd.count_nodes() > 1, "TSDD is not only True or False node"
     assert tsdd.count_models() == len(
         models
@@ -76,7 +76,7 @@ def test_init_unsat_formula():
     )
     partial = MathSATExtendedPartialEnumerator()
     partial.check_all_sat(phi, None)
-    tsdd = TheorySDD(phi, "partial")
+    tsdd = TheorySDD(phi, "total")
     assert tsdd.count_nodes() == 1, "TSDD is only False node"
     assert tsdd.count_models() == 0, "TSDD should have no models"
 
@@ -89,7 +89,7 @@ def test_init_tautology():
     )
     partial = MathSATExtendedPartialEnumerator()
     partial.check_all_sat(phi, None)
-    tsdd = TheorySDD(phi, "partial")
+    tsdd = TheorySDD(phi, "total")
     assert tsdd.count_nodes() == 1, "TSDD is only True node"
     assert (
         tsdd.count_models() == 2
@@ -99,7 +99,7 @@ def test_init_tautology():
 def test_one_variable():
     """tests SDD generation"""
     phi = LT(Symbol("test_sdd_a", REAL), Symbol("test_sdd_b", REAL))
-    tsdd = TheorySDD(phi, "partial")
+    tsdd = TheorySDD(phi, "total")
     assert tsdd.count_nodes() <= 1, "TSDD is only True node"
     assert tsdd.count_models() == 1, "TSDD should have 1 model (atom True)"
 

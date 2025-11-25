@@ -70,5 +70,4 @@ class TAtomsExtractorWalker(DagWalker):
         '''translate theory node'''
         # pylint: disable=unused-argument
         self.atoms.add(formula)
-        print("T-Atom:", formula)
         return formula

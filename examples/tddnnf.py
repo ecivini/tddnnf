@@ -1,7 +1,10 @@
 from theorydd.tddnnf.theory_ddnnf import TheoryDDNNF
-from pysmt.shortcuts import read_smtlib
+from pysmt.shortcuts import read_smtlib, Solver
+from theorydd.formula import get_theory_atoms
+from theorydd.solvers.mathsat_partial_extended import MathSATExtendedPartialEnumerator
+from theorydd.solvers.mathsat_total import MathSATTotalEnumerator
 
-EXAMPLE_CODE = "07"
+EXAMPLE_CODE = "09"
 
 def main():
     # BUILD YOUR T-FORMULA FROM THE PYSMT LIBRARY
@@ -10,6 +13,8 @@ def main():
     logger = {}
 
     # BUILD YOUR DD WITH THE CONSTRUCTOR
+    atoms = get_theory_atoms(phi)
+
     tddnnf = TheoryDDNNF(
         phi,
         computation_logger=logger,
@@ -17,13 +22,27 @@ def main():
         parallel_allsmt_procs=12,
         store_tlemmas=True,
         stop_after_allsmt=True,
+        solver=MathSATExtendedPartialEnumerator(),
+        atoms=atoms
     )
 
-    phi_atoms = set(tddnnf.phi.get_atoms())
-    lemmas = tddnnf.tlemmas
-    for lemma in lemmas:
-        lemma_atoms = set(lemma.get_atoms())
-        assert lemma_atoms.issubset(phi_atoms), "Lemma contains atoms not in the original formula."
+    # solver = Solver()
+    # converter = solver.converter
+
+    # phi = get_normalized(phi, converter)
+    # phi_ddnnf = get_normalized(tddnnf.phi_ddnnf, converter)
+
+    # p_atoms = set(phi.get_atoms())
+    # t_atoms = set(phi_ddnnf.get_atoms())
+
+    # print("Atoms difference:", t_atoms - p_atoms)
+    # assert t_atoms.issubset(p_atoms), "d-DNNF contains atoms not in the original formula."
+
+    # phi_atoms = set(tddnnf.phi.get_atoms())
+    # lemmas = tddnnf.tlemmas
+    # for lemma in lemmas:
+    #     lemma_atoms = set(lemma.get_atoms())
+    #     assert lemma_atoms.issubset(phi_atoms), "Lemma contains atoms not in the original formula."
 
     # USE YOUR t-d-DNNF
     # print("PHI:", phi)

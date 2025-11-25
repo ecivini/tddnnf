@@ -10,15 +10,13 @@ from theorydd.util.custom_exceptions import UnsupportedNodeException
 class BooleanAbstractionWalker(DagWalker):
     '''A walker to normalize smt formulas into its boolean abstraction'''
 
-    def __init__(self, atoms={}, abstraction={}, env=None, invalidate_memoization=False):
+    def __init__(self, atoms=None, abstraction=None, env=None, invalidate_memoization=False):
         DagWalker.__init__(self, env, invalidate_memoization)
-        self.atoms = atoms
-        self.abstraction = abstraction
+        self.atoms = atoms if atoms is not None else {}
+        self.abstraction = abstraction if abstraction is not None else {}
 
-        for atom in atoms:
+        for atom in self.atoms:
             self._abstract(atom)
-
-        return
 
     def walk_and(self, formula: FNode, args, **kwargs):
         '''translate AND node'''
@@ -59,6 +57,7 @@ class BooleanAbstractionWalker(DagWalker):
         if formula not in self.abstraction:
             var_name = f"v{len(self.abstraction)}"
             abstr_var = self.env.formula_manager.Symbol(var_name, BOOL)
+            print("abstracting", formula, "into", abstr_var)
             self.abstraction[formula] = abstr_var
         return self.abstraction[formula]
 

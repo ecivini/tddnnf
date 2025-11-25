@@ -16,7 +16,7 @@ def test_init_default():
     partial = MathSATTotalEnumerator()
     partial.check_all_sat(phi, None)
     models = partial.get_models()
-    abdd = AbstractionBDD(phi, "partial")
+    abdd = AbstractionBDD(phi, "total")
     assert abdd.count_nodes() > 1, "abstr. BDD is not only True or False node"
     assert abdd.count_models() > len(
         models
@@ -36,7 +36,7 @@ def test_init_updated_computation_logger():
     logger = {}
     logger["hi"] = "hello"
     copy_logger = deepcopy(logger)
-    abdd = AbstractionBDD(phi, "partial", computation_logger=logger)
+    abdd = AbstractionBDD(phi, "total", computation_logger=logger)
     assert abdd.count_nodes() > 1, "abstr. BDD is not only True or False node"
     assert abdd.count_models() >= len(
         models
@@ -56,7 +56,7 @@ def test_init_t_unsat_formula():
     )
     partial = MathSATTotalEnumerator()
     partial.check_all_sat(phi, None)
-    abdd = AbstractionBDD(phi, "partial")
+    abdd = AbstractionBDD(phi, "total")
     assert abdd.count_nodes() > 1, "abstr. BDD is not only False node"
     assert abdd.count_models() > 0, "abstr. BDD should have models"
 
@@ -69,7 +69,7 @@ def test_init_bool_unsat_formula():
     )
     partial = MathSATTotalEnumerator()
     partial.check_all_sat(phi, None)
-    abdd = AbstractionBDD(phi, "partial")
+    abdd = AbstractionBDD(phi, "total")
     assert abdd.count_nodes() == 1, "abstr. BDD is only False node"
     assert abdd.count_models() == 0, "abstr. BDD should have no models"
 
@@ -82,7 +82,7 @@ def test_init_tautology():
     )
     partial = MathSATTotalEnumerator()
     partial.check_all_sat(phi, None)
-    abdd = AbstractionBDD(phi, "partial")
+    abdd = AbstractionBDD(phi, "total")
     assert abdd.count_nodes() == 1, "TBDD is only True node"
     assert (
         abdd.count_models() == 2

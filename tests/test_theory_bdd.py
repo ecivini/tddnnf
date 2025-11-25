@@ -17,9 +17,9 @@ def test_init_default():
         LT(Symbol("Zr", REAL), Symbol("X", REAL)),
     )
     partial = MathSATExtendedPartialEnumerator()
-    partial.check_all_sat(phi, None)
+    partial.check_all_sat(phi, None, store_models=True)
     models = partial.get_models()
-    tbdd = TheoryBDD(phi, "partial")
+    tbdd = TheoryBDD(phi, "total")
     assert tbdd.count_nodes() > 1, "TBDD is not only True or False node"
     assert tbdd.count_models() == len(
         models
@@ -34,10 +34,10 @@ def test_init_with_known_lemmas():
         LT(Symbol("Zr", REAL), Symbol("X", REAL)),
     )
     partial = MathSATExtendedPartialEnumerator()
-    partial.check_all_sat(phi, None)
+    partial.check_all_sat(phi, None, store_models=True)
     lemmas = partial.get_theory_lemmas()
     models = partial.get_models()
-    tbdd = TheoryBDD(phi, "partial", tlemmas=lemmas)
+    tbdd = TheoryBDD(phi, "total", tlemmas=lemmas)
     assert tbdd.count_nodes() > 1, "TBDD is not only True or False node"
     assert tbdd.count_models() == len(
         models
@@ -52,12 +52,12 @@ def test_init_updated_computation_logger():
         LT(Symbol("Zr", REAL), Symbol("X", REAL)),
     )
     partial = MathSATExtendedPartialEnumerator()
-    partial.check_all_sat(phi, None)
+    partial.check_all_sat(phi, None, store_models=True)
     models = partial.get_models()
     logger = {}
     logger["hi"] = "hello"
     copy_logger = deepcopy(logger)
-    tbdd = TheoryBDD(phi, "partial", computation_logger=logger)
+    tbdd = TheoryBDD(phi, "total", computation_logger=logger)
     assert tbdd.count_nodes() > 1, "TBDD is not only True or False node"
     assert tbdd.count_models() == len(
         models
@@ -76,8 +76,8 @@ def test_init_unsat_formula():
         LT(Symbol("Zr", REAL), Symbol("X", REAL)),
     )
     partial = MathSATExtendedPartialEnumerator()
-    partial.check_all_sat(phi, None)
-    tbdd = TheoryBDD(phi, "partial")
+    partial.check_all_sat(phi, None, store_models=True)
+    tbdd = TheoryBDD(phi, "total")
     assert tbdd.count_nodes() == 1, "TBDD is only False node"
     assert tbdd.count_models() == 0, "TBDD should have no models"
 
@@ -89,8 +89,8 @@ def test_init_tautology():
         Not(LT(Symbol("X", REAL), Symbol("Y", REAL))),
     )
     partial = MathSATExtendedPartialEnumerator()
-    partial.check_all_sat(phi, None)
-    tbdd = TheoryBDD(phi, "partial")
+    partial.check_all_sat(phi, None, store_models=True)
+    tbdd = TheoryBDD(phi, "total")
     assert tbdd.count_nodes() == 1, "TBDD is only True node"
     assert (
         tbdd.count_models() == 2
@@ -130,7 +130,7 @@ test_phi = [
 def test_init_models_partial(phi):
     """tests that models of the T-BDD are also models of phi"""
     partial = MathSATExtendedPartialEnumerator()
-    partial.check_all_sat(phi, None)
+    partial.check_all_sat(phi, None, store_models=True)
     tlemmas = partial.get_theory_lemmas()
     tbdd = TheoryBDD(phi, solver=partial, tlemmas=tlemmas)
     ddmodels = tbdd.pick_all()
@@ -150,7 +150,7 @@ def test_init_models_partial(phi):
 def test_init_models_total(phi):
     """tests that models of the T-BDD are also models of phi"""
     total = MathSATTotalEnumerator()
-    total.check_all_sat(phi, None)
+    total.check_all_sat(phi, None, store_models=True)
     tbdd = TheoryBDD(phi, solver=total)
     ddmodels = tbdd.pick_all()
 

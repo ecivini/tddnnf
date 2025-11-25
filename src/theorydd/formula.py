@@ -448,6 +448,14 @@ def negate(phi: FNode) -> FNode:
     """
     return _Not(phi)
 
+def get_theory_atoms(phi: FNode) -> Set[FNode]:
+    raw_atoms = phi.get_atoms()
+    t_atoms = set()
+    for atom in raw_atoms:
+        if not atom.is_symbol(_BOOL):
+            t_atoms.add(atom)
+    return t_atoms
+
 if __name__ == "__main__":
     phi_test = default_phi()
     data = get_atom_partitioning(phi_test)

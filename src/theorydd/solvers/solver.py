@@ -3,10 +3,10 @@
 from abc import ABC, abstractmethod
 from typing import Dict, Set, List
 
+from pysmt.shortcuts import BOOL
 from pysmt.fnode import FNode
 from theorydd.constants import SAT, UNSAT
 from theorydd.formula import get_normalized, get_atom_partitioning, get_true_given_atoms
-from theorydd.walkers.walker_t_atoms_extractor import TAtomsExtractorWalker
 
 
 class SMTEnumerator(ABC):
@@ -26,7 +26,8 @@ class SMTEnumerator(ABC):
         boolean_mapping: Dict | None = None,
         parallel_procs: int = 1,
         atoms: List[FNode] | None = None,
-        computation_logger: Dict | None = None
+        computation_logger: Dict | None = None,
+        store_models: bool = False
     ) -> bool:
         """check T-satisfiability of a formula"""
         pass
@@ -46,11 +47,11 @@ class SMTEnumerator(ABC):
         """return the list of models"""
         pass
 
-    def get_theory_atoms(self, phi: FNode) -> Set[FNode]:
-        extractor = TAtomsExtractorWalker()
-        extractor.walk(phi)
-        return extractor.atoms
-
+    @abstractmethod
+    def get_models_count(self) -> int:
+        """return the number of models"""
+        pass
+    
     def enumerate_true(self, phi: FNode, stop_at_unsat: bool = False) -> bool:
         """enumerate all lemmas on the formula phi
 
