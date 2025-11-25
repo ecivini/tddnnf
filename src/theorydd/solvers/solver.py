@@ -6,6 +6,7 @@ from typing import Dict, Set, List
 from pysmt.fnode import FNode
 from theorydd.constants import SAT, UNSAT
 from theorydd.formula import get_normalized, get_atom_partitioning, get_true_given_atoms
+from theorydd.walkers.walker_t_atoms_extractor import TAtomsExtractorWalker
 
 
 class SMTEnumerator(ABC):
@@ -46,11 +47,9 @@ class SMTEnumerator(ABC):
         pass
 
     def get_theory_atoms(self, phi: FNode) -> Set[FNode]:
-        atoms = set()
-        for atom in phi.get_atoms():
-            if not atom.get_type().is_bool_type():
-                atoms.add(atom)
-        return atoms
+        extractor = TAtomsExtractorWalker()
+        extractor.walk(phi)
+        return extractor.atoms
 
     def enumerate_true(self, phi: FNode, stop_at_unsat: bool = False) -> bool:
         """enumerate all lemmas on the formula phi
