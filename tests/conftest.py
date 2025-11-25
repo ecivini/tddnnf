@@ -1,4 +1,4 @@
-import pysmt
+import pysmt.environment
 
 
 def pytest_runtest_setup():

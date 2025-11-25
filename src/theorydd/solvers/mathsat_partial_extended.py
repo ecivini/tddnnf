@@ -1,4 +1,5 @@
 """this module handles interactions with the mathsat solver"""
+
 import multiprocessing
 import time
 from typing import Dict, List
@@ -8,19 +9,22 @@ from allsat_cnf.polarity_cnfizer import PolarityCNFizer
 from pysmt.fnode import FNode
 from pysmt.formula import FormulaContextualizer
 from pysmt.shortcuts import And, Solver
+from pysmt.solvers.msat import MathSAT5Solver
 
 from theorydd.constants import SAT, UNSAT
+from theorydd.formula import get_theory_atoms
 from theorydd.solvers.solver import SMTEnumerator
 from theorydd.util.collections import Nested, map_nested
 from theorydd.util.pysmt import SuspendTypeChecking
-from theorydd.formula import get_theory_atoms
+from .mathsat_utils import (
+    MSAT_PARTIAL_ENUM_OPTIONS,
+    MSAT_TOTAL_ENUM_OPTIONS,
+    _allsat_callback_count,
+    _allsat_callback_store,
+)
 
-from .mathsat_utils import _allsat_callback_count, _allsat_callback_store
 
-
-def _contextualize(
-        contextualizer: FormulaContextualizer, formulas: Nested[FNode]
-) -> Nested[FNode]:
+def _contextualize(contextualizer: FormulaContextualizer, formulas: Nested[FNode]) -> Nested[FNode]:
     """Contextualizes a collection of formulas using the provided contextualizer
 
     Args:
@@ -38,15 +42,11 @@ _PARTIAL_MODELS = []
 _TLEMMAS = []
 _PHI = None
 _PHI_ATOMS = []
-_SOLVER = None
+_SOLVER: MathSAT5Solver | None = None
 
 
 def _initialize_worker(
-    partial_models: List[List[FNode]],
-    phi: FNode,
-    phi_atoms: List[FNode],
-    tlemmas: List[FNode],
-    solver_options: dict
+    partial_models: List[List[FNode]], phi: FNode, phi_atoms: List[FNode], tlemmas: List[FNode], solver_options: dict
 ) -> None:
     global _PARTIAL_MODELS, _PHI, _TLEMMAS, _SOLVER, _PHI_ATOMS
 
@@ -56,10 +56,7 @@ def _initialize_worker(
     _TLEMMAS = _contextualize(contextualizer, tlemmas)
     _PHI = _contextualize(contextualizer, phi)
 
-    _SOLVER = Solver(
-        "msat",
-        solver_options=solver_options
-    )
+    _SOLVER = Solver("msat", solver_options=solver_options)
 
     _PHI_ATOMS = _contextualize(contextualizer, phi_atoms)
     _PHI_ATOMS = [_SOLVER.converter.convert(a) for a in _PHI_ATOMS]
@@ -70,10 +67,10 @@ def _initialize_worker(
 
 def _parallel_worker(args: tuple) -> tuple:
     """Worker function for parallel all-smt extension
-    
+
     Args:
         args: tuple of (partial_model, phi, atoms, solver_options_dict_total, tlemmas)
-    
+
     Returns:
         tuple of local_models, total_lemmas
     """
@@ -100,30 +97,17 @@ def _parallel_worker(args: tuple) -> tuple:
         mathsat.msat_all_sat(
             local_solver.msat_env(),
             converted_atoms,
-            callback=lambda model:
-                _allsat_callback_store(
-                    model,
-                    local_converter,
-                    found_models
-                )
+            callback=lambda model: _allsat_callback_store(model, local_converter, found_models),
         )
         found_models_count = len(found_models)
     else:
         models_count_l = [0]
         mathsat.msat_all_sat(
-            local_solver.msat_env(),
-            converted_atoms,
-            callback=lambda model:
-                _allsat_callback_count(
-                    models_count_l
-                )
+            local_solver.msat_env(), converted_atoms, callback=lambda _: _allsat_callback_count(models_count_l)
         )
         found_models_count = models_count_l[0]
 
-    found_tlemmas = [
-        local_converter.back(l)
-        for l in mathsat.msat_get_theory_lemmas(local_solver.msat_env())
-    ]
+    found_tlemmas = [local_converter.back(l) for l in mathsat.msat_get_theory_lemmas(local_solver.msat_env())]
 
     local_solver.pop()
     local_solver.add_assertion(And(found_tlemmas))
@@ -137,131 +121,78 @@ class MathSATExtendedPartialEnumerator(SMTEnumerator):
     Computes all-SMT by first computing partial assignments and then extending them to total ones.
     The result of the enumeration is a total enumeration of truth assignments."""
 
-    def __init__(self) -> None:
-        solver_options_dict = {
-            "dpll.allsat_minimize_model": "true",  # - total truth assignments
-            # "theory.pure_literal_filtering": "true",
-            # "dpll.allsat_allow_duplicates": "false", # - to produce not necessarily disjoint truth assignments.
-            #                                          # can be set to true only if minimize_model=true.
-            # - necessary to disable some processing steps
-            "preprocessor.toplevel_propagation": "false",
-            "preprocessor.simplification": "0",  # from mathsat
-            "dpll.store_tlemmas": "true",  # - necessary to obtain t-lemmas
-            "theory.la.split_rat_eq": "false",
-            "theory.la.laz_internal_branch_and_bound": "true",
-            "theory.la.laz_internal_branch_and_bound_limit": "0"
-        }
-        self.solver_options_dict_total = {
-            "dpll.allsat_minimize_model": "false",  # - total truth assignments
-            # "theory.pure_literal_filtering": "true",
-            # "dpll.allsat_allow_duplicates": "false", # - to produce not necessarily disjoint truth assignments.
-            #                                          # can be set to true only if minimize_model=true.
-            # - necessary to disable some processing steps
-            "preprocessor.toplevel_propagation": "false",
-            "preprocessor.simplification": "0",  # from mathsat
-            "dpll.store_tlemmas": "true",  # - necessary to obtain t-lemmas
-            "theory.la.split_rat_eq": "false",
-            "theory.la.laz_internal_branch_and_bound": "true",
-            "theory.la.laz_internal_branch_and_bound_limit": "0"
-        }
-        self.solver = Solver("msat", solver_options=solver_options_dict)
-        self.solver_total = Solver("msat", solver_options=self.solver_options_dict_total)
-        self._last_phi = None
-        self._tlemmas = []
-        self._models = []
-        self._models_count = 0
-        self._converter = self.solver.converter
+    def __init__(self, computation_logger: Dict | None = None, parallel_procs: int = 1):
+        super().__init__(computation_logger=computation_logger)
+        self.solver_partial = Solver("msat", solver_options=MSAT_PARTIAL_ENUM_OPTIONS)
+        self.solver_total = Solver("msat", solver_options=MSAT_TOTAL_ENUM_OPTIONS)
+        self.reset()
+        self._converter_partial = self.solver_partial.converter
         self._converter_total = self.solver_total.converter
-        self._atoms = []
+        self._parallel_procs = parallel_procs
 
-    def check_all_sat(
-            self, phi: FNode, boolean_mapping: Dict[FNode, FNode] | None = None, 
-            parallel_procs: int = 1, atoms: List[FNode] | None = None,
-            computation_logger: dict | None = None, store_models: bool = False
-    ) -> bool:
-        """Computes All-SMT for the SMT-formula phi using partial assignment and Tsetsin CNF-ization
-
-        Args:
-            phi (FNode): a pysmt formula
-            boolean_mapping (Dict[FNode, FNode]) [None]: unused, for compatibility with SMTSolver
-            parallel (bool) [False]: if True, parallelizes the computation of total truth assignments
-        """
-        if boolean_mapping is not None:
-            boolean_mapping = None
-
-        self._last_phi = phi
+    def reset(self):
+        self.solver_partial.reset_assertions()
+        self.solver_total.reset_assertions()
         self._tlemmas = []
         self._models = []
         self._models_count = 0
-        self._atoms = get_theory_atoms(phi) if not atoms else atoms
 
-        self.solver.reset_assertions()
-        self.solver_total.reset_assertions()
-        phi_tsetsin = PolarityCNFizer(
-            nnf=True, mutex_nnf_labels=True
-        ).convert_as_formula(phi)
-        self.solver.add_assertion(phi_tsetsin)
+    def check_all_sat(self, phi: FNode, atoms: List[FNode] | None = None, store_models: bool = False) -> bool:
+        self.reset()
 
-        partial_models = []
+        atoms = get_theory_atoms(phi) if not atoms else atoms
+
+        phi_cnf = PolarityCNFizer(nnf=True, mutex_nnf_labels=True).convert_as_formula(phi)
+        self.solver_partial.add_assertion(phi_cnf)
+
         start_time = time.time()
+        partial_models = []
         mathsat.msat_all_sat(
-            self.solver.msat_env(),
-            self.get_converted_atoms(self._atoms),
-            # self.get_converted_atoms(
-            #    list(boolean_mapping.keys())),
-            callback=lambda model: _allsat_callback_store(
-                model, self._converter, partial_models
-            ),
+            self.solver_partial.msat_env(),
+            self.get_converted_atoms(atoms, self._converter_partial),
+            callback=lambda model: _allsat_callback_store(model, self._converter_partial, partial_models),
         )
 
         self._tlemmas = [
-            self._converter.back(l)
-            for l in mathsat.msat_get_theory_lemmas(self.solver.msat_env())
+            self._converter_partial.back(l) for l in mathsat.msat_get_theory_lemmas(self.solver_partial.msat_env())
         ]
 
         end_time = time.time()
-        if computation_logger is not None:
-            computation_logger["Partial AllSMT time"] = end_time - start_time
-            computation_logger["Partial models"] = len(partial_models)
+        if self._computation_logger is not None:
+            self._computation_logger["Partial AllSMT time"] = end_time - start_time
+            self._computation_logger["Partial models"] = len(partial_models)
 
         if len(partial_models) == 0:
             return UNSAT
 
-        if parallel_procs <= 1:
+        if self._parallel_procs <= 1:
             self.solver_total.add_assertion(phi)
-            self.solver_total.add_assertion(And(self._tlemmas))
-            
+            self.solver_total.add_assertions(self._tlemmas)
+            converted_atoms = self.get_converted_atoms(atoms, self._converter_total)
+
             for m in partial_models:
                 self.solver_total.push()
-                self.solver_total.add_assertion(And(m))
+                self.solver_total.add_assertions(m)
 
                 if store_models:
+                    models = []
                     mathsat.msat_all_sat(
                         self.solver_total.msat_env(),
-                        [self._converter_total.convert(a) for a in self._atoms],
-                        callback=lambda model:
-                            _allsat_callback_store(
-                                model,
-                                self._converter_total,
-                                self._models
-                            )
+                        converted_atoms,
+                        callback=lambda model: _allsat_callback_store(model, self._converter_total, models),
                     )
-                    self._models_count = len(self._models)
+                    self._models_count += len(models)
                 else:
                     models_count_l = [0]
                     mathsat.msat_all_sat(
                         self.solver_total.msat_env(),
-                        [self._converter_total.convert(a) for a in self._atoms],
-                        callback=lambda _:
-                            _allsat_callback_count(
-                                models_count_l
-                            )
+                        converted_atoms,
+                        callback=lambda _: _allsat_callback_count(models_count_l),
                     )
                     self._models_count += models_count_l[0]
 
                 tlemmas_total = [
-                    self._converter_total.back(l)
-                    for l in mathsat.msat_get_theory_lemmas(self.solver_total.msat_env())
+                    self._converter_total.back(l) for l in mathsat.msat_get_theory_lemmas(self.solver_total.msat_env())
                 ]
 
                 self._tlemmas += tlemmas_total
@@ -271,38 +202,29 @@ class MathSATExtendedPartialEnumerator(SMTEnumerator):
 
         else:
             # Prepare arguments for each worker
-            worker_args = [
-                (i, store_models)
-                for i in range(len(partial_models))
-            ]
+            worker_args = [(i, store_models) for i in range(len(partial_models))]
 
-            # Use a process pool to maintain constant number of workers  
+            # Use a process pool to maintain constant number of workers
             new_tlemmas = []
             pool = multiprocessing.Pool(
-                processes=parallel_procs,
+                processes=self._parallel_procs,
                 initializer=_initialize_worker,
-                initargs=(
-                    partial_models,
-                    phi,
-                    self._atoms,
-                    self._tlemmas,
-                    self.solver_options_dict_total
-                )
+                initargs=(partial_models, phi, atoms, self._tlemmas, MSAT_TOTAL_ENUM_OPTIONS),
             )
             with pool:
                 # Use imap_unordered to process results as they complete
-                for (models, models_count, lemmas_batch) in pool.imap_unordered(_parallel_worker, worker_args):
+                for models, models_count, lemmas_batch in pool.imap_unordered(_parallel_worker, worker_args):
                     contextualizer = FormulaContextualizer()
-                    self._models.extend(_contextualize(contextualizer, models)) 
-                    new_tlemmas.extend(_contextualize(contextualizer, lemmas_batch))   
+                    self._models.extend(_contextualize(contextualizer, models))
+                    new_tlemmas.extend(_contextualize(contextualizer, lemmas_batch))
                     self._models_count += models_count
 
             self._tlemmas.extend(new_tlemmas)
 
         self._tlemmas = list(set(self._tlemmas))
 
-        if computation_logger is not None:
-            computation_logger["Total models"] = self._models_count
+        if self._computation_logger is not None:
+            self._computation_logger["Total models"] = self._models_count
 
         return SAT
 
@@ -313,14 +235,14 @@ class MathSATExtendedPartialEnumerator(SMTEnumerator):
     def get_models(self) -> List:
         """Returns the models found during the All-SAT computation"""
         return self._models
-    
+
     def get_models_count(self) -> int:
         return self._models_count
 
     def get_converter(self):
         """Returns the converter used for the normalization of T-atoms"""
-        return self._converter
+        return self._converter_partial
 
-    def get_converted_atoms(self, atoms):
+    def get_converted_atoms(self, atoms, converter) -> List[FNode]:
         """Returns a list of normalized atoms"""
-        return [self._converter.convert(a) for a in atoms]
+        return [converter.convert(a) for a in atoms]
