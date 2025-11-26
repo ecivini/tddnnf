@@ -7,6 +7,7 @@ from pysmt.fnode import FNode
 
 from theorydd.constants import SAT, UNSAT
 from theorydd.formula import get_atom_partitioning, get_normalized, get_true_given_atoms
+from theorydd.walkers.term_ite_checker import TermIteChecker
 
 
 class SMTEnumerator(ABC):
@@ -57,6 +58,18 @@ class SMTEnumerator(ABC):
     def get_models_count(self) -> int:
         """return the number of models"""
         pass
+
+    @staticmethod
+    def check_supports(phi: FNode) -> None:
+        """check if the solver supports the formula phi
+
+        Args:
+            phi (FNode): a pysmt formula
+        Returns:
+            bool: True if the solver supports phi, False otherwise
+        """
+        assert TermIteChecker().walk(phi), "Term-ITE are not supported yet"
+
 
     def enumerate_true(self, phi: FNode, stop_at_unsat: bool = False) -> bool:
         """enumerate all lemmas on the formula phi

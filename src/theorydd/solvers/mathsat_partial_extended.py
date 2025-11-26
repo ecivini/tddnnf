@@ -138,6 +138,7 @@ class MathSATExtendedPartialEnumerator(SMTEnumerator):
         self._models_count = 0
 
     def check_all_sat(self, phi: FNode, atoms: List[FNode] | None = None, store_models: bool = False) -> bool:
+        self.check_supports(phi)
         self.reset()
 
         atoms = get_theory_atoms(phi) if not atoms else atoms

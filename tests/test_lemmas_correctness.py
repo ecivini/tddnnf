@@ -3,7 +3,7 @@ from typing import NamedTuple
 import pytest
 from pysmt.fnode import FNode
 from pysmt.formula import FormulaContextualizer
-from pysmt.shortcuts import And, Iff, Not, Or, Solver, Symbol, Xor, read_smtlib
+from pysmt.shortcuts import And, Iff, Ite, Not, Or, Real, Solver, Symbol, Xor, read_smtlib
 from pysmt.typing import BOOL, REAL
 
 from theorydd.formula import get_normalized
@@ -67,7 +67,7 @@ EXAMPLES: list[Example] = [
         True,
     ),
     Example("tests/items/test_lemmas.smt2", True, True),
-    Example("tests/items/6_1.smt2", True, True),
+    Example("tests/items/6_2.smt2", True, True),
 ]
 
 SOLVERS = [
@@ -115,6 +115,7 @@ def test_lemmas_correctness(example, solver):
     bool_walker = BooleanAbstractionWalker(atoms=phi_and_lemmas_atoms)
     phi_and_lemmas_abstr = bool_walker.walk(phi_and_lemmas)
     phi_abstr = bool_walker.walk(phi)
+    assert len(phi_abstr.get_atoms()) == len(phi_atoms), "Abstraction should preserve atoms of phi"
 
     # ---- Check that phi and phi & lemmas are theory-equivalent ----
     with Solver() as check_solver:
@@ -146,4 +147,11 @@ def test_lemmas_correctness(example, solver):
                 t_unsat_models.append(refined)
             check_solver.pop()
 
-    assert len(t_unsat_models) == 0, "There should be no theory-unsat models"
+    assert len(t_unsat_models) == 0, "There should be no theory-unsat models, found {}".format(len(t_unsat_models))
+
+
+def test_term_ite_exception(solver):
+    phi = Or(And(x >= Ite(a, Real(0), Real(1)), y >= 0), a)
+
+    with pytest.raises(AssertionError, match="Term-ITE are not supported yet"):
+        solver.check_supports(phi)

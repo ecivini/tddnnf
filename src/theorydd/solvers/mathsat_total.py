@@ -35,6 +35,7 @@ class MathSATTotalEnumerator(SMTEnumerator):
             atoms: List[FNode] | None = None,
             store_models: bool = False
     ) -> bool:
+        self.check_supports(phi)
         self.reset()
 
         atoms = get_theory_atoms(phi) if not atoms else atoms
