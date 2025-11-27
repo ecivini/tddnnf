@@ -6,17 +6,12 @@ from theorydd.solvers.mathsat_partial_extended import MathSATExtendedPartialEnum
 from theorydd.solvers.mathsat_total import MathSATTotalEnumerator
 from theorydd.tddnnf.theory_ddnnf import TheoryDDNNF
 
-EXAMPLE_CODE = "22"
+EXAMPLE_CODE = "09"
 
 
 def main():
     # BUILD YOUR T-FORMULA FROM THE PYSMT LIBRARY
-    phi = read_smtlib(
-        f"/home/gabriele/Documents/phd/theorykc/tddnnf-testbench/data/benchmark/randgen/data/"
-        f"problems_b10_r10_d4_m25_s1234/{EXAMPLE_CODE}/b10_d4_r10_s1234_{EXAMPLE_CODE}.smt2"
-    )
-    base_path = f"data/randgen{EXAMPLE_CODE}"
-    os.makedirs(base_path)
+    phi = read_smtlib(f"data/{EXAMPLE_CODE}/test.smt2")
 
     logger = {}
 
@@ -25,7 +20,7 @@ def main():
     tddnnf = TheoryDDNNF(
         phi,
         computation_logger=logger,
-        base_out_path=base_path,
+        base_out_path=f"data/{EXAMPLE_CODE}",
         store_tlemmas=True,
         stop_after_allsmt=True,
         solver=MathSATTotalEnumerator(),
