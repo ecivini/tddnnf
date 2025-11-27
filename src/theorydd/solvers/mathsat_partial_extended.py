@@ -125,6 +125,8 @@ class MathSATExtendedPartialEnumerator(SMTEnumerator):
         self, computation_logger: Dict | None = None, project_on_theory_atoms: bool = True, parallel_procs: int = 1
     ):
         super().__init__(computation_logger=computation_logger)
+        if parallel_procs < 1 or parallel_procs > multiprocessing.cpu_count():
+            raise ValueError("parallel_procs must be between 1 and the number of CPU cores")
         self.solver_partial = Solver("msat", solver_options=MSAT_PARTIAL_ENUM_OPTIONS)
         self.solver_total = Solver("msat", solver_options=MSAT_TOTAL_ENUM_OPTIONS)
         self.reset()

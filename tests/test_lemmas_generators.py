@@ -1,3 +1,4 @@
+import multiprocessing
 from typing import NamedTuple
 
 import pytest
@@ -9,7 +10,6 @@ from pysmt.typing import BOOL, REAL
 from theorydd.formula import get_normalized
 from theorydd.solvers.mathsat_partial_extended import MathSATExtendedPartialEnumerator
 from theorydd.solvers.mathsat_total import MathSATTotalEnumerator
-from theorydd.solvers.solver import SMTEnumerator
 from theorydd.walkers.walker_bool_abstraction import BooleanAbstractionWalker
 from theorydd.walkers.walker_refinement import RefinementWalker
 
@@ -71,21 +71,6 @@ EXAMPLES: list[Example] = [
     Example(read_smtlib("tests/items/6_2.smt2"), 360, 360),
 ]
 
-SOLVERS = [
-    ("total", MathSATTotalEnumerator, {"project_on_theory_atoms": False}),
-    ("total-project", MathSATTotalEnumerator, {"project_on_theory_atoms": True}),
-    ("partial-1", MathSATExtendedPartialEnumerator, {"project_on_theory_atoms": False, "parallel_procs": 1}),
-    ("partial-project-1", MathSATExtendedPartialEnumerator, {"project_on_theory_atoms": True, "parallel_procs": 1}),
-    ("partial-8", MathSATExtendedPartialEnumerator, {"project_on_theory_atoms": False, "parallel_procs": 8}),
-    ("partial-project-8", MathSATExtendedPartialEnumerator, {"project_on_theory_atoms": True, "parallel_procs": 8}),
-]
-
-
-@pytest.fixture(params=SOLVERS, ids=lambda s: s[0])
-def solver_info(request) -> tuple[SMTEnumerator, bool]:
-    _, solver_cls, params = request.param
-    return solver_cls(**params), params.get("project_on_theory_atoms", False)
-
 
 @pytest.fixture(params=EXAMPLES, ids=lambda e: str(e.formula))
 def example(request) -> Example:
@@ -108,7 +93,9 @@ def test_lemmas_correctness(example, solver_info):
     # ---- Generate lemmas ----
     phi_atoms = list(phi.get_atoms())
     phi_sat = solver.check_all_sat(phi, atoms=phi_atoms, store_models=True)
-    assert solver.get_models_count() == expected_lemmas_models_count, "Model count should match expected: {}".format(solver.get_models())
+    assert solver.get_models_count() == expected_lemmas_models_count, "Model count should match expected: {}".format(
+        solver.get_models()
+    )
 
     lemmas = solver.get_theory_lemmas()
 
@@ -145,7 +132,9 @@ def test_lemmas_correctness(example, solver_info):
         store_models=True,
     )
     assert abstr_sat == phi_sat, "Satisfiability of abstracted formula with lemmas should match original"
-    assert solver_abstr.get_models_count() == expected_models_count, "Model count of abstracted formula with lemmas should match expected"
+    assert (
+        solver_abstr.get_models_count() == expected_models_count
+    ), "Model count of abstracted formula with lemmas should match expected"
 
     with Solver() as check_solver:
         t_unsat_models = []
@@ -163,8 +152,18 @@ def test_lemmas_correctness(example, solver_info):
     assert len(t_unsat_models) == 0, "There should be no theory-unsat models, found {}".format(len(t_unsat_models))
 
 
-def test_term_ite_exception(solver):
+def test_term_ite_exception(solver_info):
+    solver, _ = solver_info
     phi = Or(And(x >= Ite(a, Real(0), Real(1)), y >= 0), a)
 
     with pytest.raises(AssertionError, match="Term-ITE are not supported yet"):
         solver.check_supports(phi)
+
+
+# ==================== Parallel Processing Tests ====================
+
+@pytest.mark.parametrize("parallel_procs", [0, -1, multiprocessing.cpu_count() + 1])
+def test_invalid_parallel_procs(parallel_procs, sat_formula):
+    """Test that invalid parallel_procs (0) raises error"""
+    with pytest.raises(ValueError, match="parallel_procs must be between 1"):
+        _ = MathSATExtendedPartialEnumerator(parallel_procs=parallel_procs)

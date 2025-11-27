@@ -1,29 +1,34 @@
-from theorydd.tddnnf.theory_ddnnf import TheoryDDNNF
-from pysmt.shortcuts import read_smtlib, Solver
-from theorydd.formula import get_theory_atoms
+import os
+
+from pysmt.shortcuts import read_smtlib
+
 from theorydd.solvers.mathsat_partial_extended import MathSATExtendedPartialEnumerator
 from theorydd.solvers.mathsat_total import MathSATTotalEnumerator
+from theorydd.tddnnf.theory_ddnnf import TheoryDDNNF
 
-EXAMPLE_CODE = "09"
+EXAMPLE_CODE = "22"
+
 
 def main():
     # BUILD YOUR T-FORMULA FROM THE PYSMT LIBRARY
-    phi = read_smtlib(f"data/{EXAMPLE_CODE}/test.smt2")
+    phi = read_smtlib(
+        f"/home/gabriele/Documents/phd/theorykc/tddnnf-testbench/data/benchmark/randgen/data/"
+        f"problems_b10_r10_d4_m25_s1234/{EXAMPLE_CODE}/b10_d4_r10_s1234_{EXAMPLE_CODE}.smt2"
+    )
+    base_path = f"data/randgen{EXAMPLE_CODE}"
+    os.makedirs(base_path)
 
     logger = {}
 
     # BUILD YOUR DD WITH THE CONSTRUCTOR
-    atoms = get_theory_atoms(phi)
 
     tddnnf = TheoryDDNNF(
         phi,
         computation_logger=logger,
-        base_out_path=f"data/{EXAMPLE_CODE}",
-        parallel_allsmt_procs=12,
+        base_out_path=base_path,
         store_tlemmas=True,
         stop_after_allsmt=True,
-        solver=MathSATExtendedPartialEnumerator(),
-        atoms=atoms
+        solver=MathSATTotalEnumerator(),
     )
 
     # solver = Solver()

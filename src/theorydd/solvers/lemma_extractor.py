@@ -13,11 +13,10 @@ def extract(
     phi: FNode,
     smt_solver: SMTEnumerator,
     enumerate_true: bool = False,
-    use_boolean_mapping: bool = True,
+    use_boolean_mapping: bool = False,
     computation_logger: Dict = None,
-    parallel_procs: int = 1,
-    atoms: List[FNode] | None = None
-) -> Tuple[bool, List[FNode], Dict[FNode,FNode] | None]:
+    atoms: List[FNode] | None = None,
+) -> Tuple[bool, List[FNode], Dict[FNode, FNode] | None]:
     """extract lemmas from a SMT-formula
 
     Args:

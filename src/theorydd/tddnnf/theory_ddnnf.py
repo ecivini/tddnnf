@@ -15,19 +15,18 @@ from theorydd.constants import SAT
 import multiprocessing
 
 
-class TheoryDDNNF():
+class TheoryDDNNF:
     
     def __init__(
         self, 
         phi: FNode, 
         atoms: List[FNode] | None = None,
-        solver: MathSATExtendedPartialEnumerator | None = None,
+        solver: SMTEnumerator | None = None,
         base_out_path: str | None = None,
         tlemmas: List[FNode] | None = None,
         load_lemmas: str | None = None,
         sat_result: bool | None = None,
         computation_logger: Dict | None = None,
-        parallel_allsmt_procs: int = 1,
         store_tlemmas: bool = False,
         stop_after_allsmt: bool = False
     ) -> None:
@@ -45,11 +44,6 @@ class TheoryDDNNF():
         if computation_logger.get(self.structure_name) is None:
             computation_logger[self.structure_name] = {}
 
-        if parallel_allsmt_procs < 1 or parallel_allsmt_procs > multiprocessing.cpu_count():
-            raise ValueError(
-                "parallel_allsmt_procs must be between 1 and the number of CPU cores"
-            )
-
         # NORMALIZE PHI
         self.phi = self._normalize_input(
             phi, solver, computation_logger[self.structure_name]
@@ -59,7 +53,6 @@ class TheoryDDNNF():
         tlemmas, sat_result = self._load_lemmas(
             self.phi,
             solver,
-            parallel_allsmt_procs,
             atoms,
             tlemmas,
             load_lemmas,
@@ -122,7 +115,6 @@ class TheoryDDNNF():
         self,
         phi: FNode,
         smt_solver: SMTEnumerator,
-        parallel_procs: int,
         atoms: List[FNode] | None,
         tlemmas: List[FNode] | None,
         load_lemmas: str | None,
@@ -144,7 +136,6 @@ class TheoryDDNNF():
                 phi,
                 smt_solver,
                 computation_logger=computation_logger,
-                parallel_procs=parallel_procs,
                 atoms=atoms,
             )
         # tlemmas = list(
@@ -152,9 +143,7 @@ class TheoryDDNNF():
         #         lambda l: formula.get_normalized(l, smt_solver.get_converter()), tlemmas
         #     )
         # )
-        # BASICALLY PADDING TO AVOID POSSIBLE ISSUES
-        while len(tlemmas) < 2:
-            tlemmas.append(formula.top())
+
         elapsed_time = time.time() - start_time
         self.logger.info("Lemmas loaded in %s seconds", str(elapsed_time))
         computation_logger["lemmas loading time"] = elapsed_time
