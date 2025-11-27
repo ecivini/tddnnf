@@ -188,6 +188,7 @@ class MathSATExtendedPartialEnumerator(SMTEnumerator):
                         callback=lambda model: _allsat_callback_store(model, self._converter_total, models),
                     )
                     self._models_count += len(models)
+                    self._models.extend(models)
                 else:
                     models_count_l = [0]
                     mathsat.msat_all_sat(
