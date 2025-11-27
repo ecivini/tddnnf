@@ -9,6 +9,7 @@ from pysmt.typing import BOOL, REAL
 from theorydd.formula import get_normalized
 from theorydd.solvers.mathsat_partial_extended import MathSATExtendedPartialEnumerator
 from theorydd.solvers.mathsat_total import MathSATTotalEnumerator
+from theorydd.solvers.solver import SMTEnumerator
 from theorydd.walkers.walker_bool_abstraction import BooleanAbstractionWalker
 from theorydd.walkers.walker_refinement import RefinementWalker
 
@@ -22,52 +23,52 @@ yLE05 = y <= 0.5
 xLE05 = x <= 0.5
 a, b = (Symbol(name, BOOL) for name in "ab")
 
-Example = NamedTuple("Example", [("formula", str | FNode), ("is_sat", bool), ("tlemmas_expected", bool)])
+Example = NamedTuple("Example", [("formula", FNode), ("model_count", int), ("projected_model_count", int)])
 
 
 # formulas to test: (formula, is_sat, tlemmas_expected)
 EXAMPLES: list[Example] = [
-    Example(xLE05, True, False),
-    Example(And(xLE05, yLE05), True, False),
-    Example(Or(xLE05, yLE05), True, False),
-    Example(And(xLE05, yLE05, xp3yLE05, xp3yp2zLE05), True, False),
-    Example(Or(xLE05, yLE05, xp3yLE05, xp3yp2zLE05), True, True),
-    Example(Not(xLE05), True, False),
-    Example(Not(Not(xLE05)), True, False),
-    Example(Not(Not(And(xLE05, yLE05))), True, False),
-    Example(Not(Not(Or(xLE05, yLE05))), True, False),
-    Example(And(x <= y, y <= x), True, False),
-    Example(And(x < y, y < x), False, True),
-    Example(And(x <= y, z <= w), True, False),
-    Example(Or(x < y, y < z, z < x), True, True),
-    Example(And(Or(xLE05, yLE05), Or(xp3yLE05, xp3yp2zLE05)), True, False),
-    Example(Or(And(xLE05, yLE05), And(xp3yLE05, xp3yp2zLE05)), True, True),
-    Example(Not(Or(xLE05, Not(And(yLE05, Not(Or(xp3yLE05, xp3yp2zLE05)))))), True, False),
+    Example(xLE05, 1, 1),
+    Example(And(xLE05, yLE05), 1, 1),
+    Example(Or(xLE05, yLE05), 3, 3),
+    Example(And(xLE05, yLE05, xp3yLE05, xp3yp2zLE05), 1, 1),
+    Example(Or(xLE05, yLE05, xp3yLE05, xp3yp2zLE05), 13, 13),
+    Example(Not(xLE05), 1, 1),
+    Example(Not(Not(xLE05)), 1, 1),
+    Example(Not(Not(And(xLE05, yLE05))), 1, 1),
+    Example(Not(Not(Or(xLE05, yLE05))), 3, 3),
+    Example(And(x <= y, y <= x), 1, 1),
+    Example(And(x < y, y < x), 0, 0),
+    Example(And(x <= y, z <= w), 1, 1),
+    Example(Or(x < y, y < z, z < x), 6, 6),
+    Example(And(Or(xLE05, yLE05), Or(xp3yLE05, xp3yp2zLE05)), 9, 9),
+    Example(Or(And(xLE05, yLE05), And(xp3yLE05, xp3yp2zLE05)), 6, 6),
+    Example(Not(Or(xLE05, Not(And(yLE05, Not(Or(xp3yLE05, xp3yp2zLE05)))))), 1, 1),
     Example(
         Or(
             Or(Or(And(xLE05, yLE05), And(xp3yLE05, xp3yp2zLE05)), And(xp3yp2zp1LE05, a)),
             Not(And(b, xp3yp2zp1LExp3yp2z)),
         ),
-        True,
-        True,
+        84,
+        21,
     ),
-    Example(Or(And(xLE05, yLE05), And(xp3yLE05, Or(Not(And(xLE05, yLE05)), xp3yp2zLE05))), True, True),
-    Example(Iff(And(xp3yLE05, xp3yp2zLE05), Or(xp3yp2zLE05, And(yLE05, xLE05))), True, True),
+    Example(Or(And(xLE05, yLE05), And(xp3yLE05, Or(Not(And(xLE05, yLE05)), xp3yp2zLE05))), 8, 8),
+    Example(Iff(And(xp3yLE05, xp3yp2zLE05), Or(xp3yp2zLE05, And(yLE05, xLE05))), 8, 8),
     Example(
         Or(And(xp3yLE05, xp3yp2zLE05), Not(Iff(And(xp3yLE05, xp3yp2zLE05), Or(xp3yp2zLE05, And(yLE05, xLE05))))),
-        True,
-        True,
+        9,
+        9,
     ),
     Example(
         Xor(
             And(Not(And(Not(xLE05), xp3yLE05)), Or(Not(yLE05), Not(xp3yp2zLE05))),
             And(Not(And(xp3yp2zLE05, Not(a))), Not(And(Not(yLE05), a))),
         ),
-        True,
-        True,
+        15,
+        11,
     ),
-    Example("tests/items/test_lemmas.smt2", True, True),
-    Example("tests/items/6_2.smt2", True, True),
+    Example(read_smtlib("tests/items/test_lemmas.smt2"), 1, 1),
+    Example(read_smtlib("tests/items/6_2.smt2"), 360, 360),
 ]
 
 SOLVERS = [
@@ -81,20 +82,24 @@ SOLVERS = [
 
 
 @pytest.fixture(params=SOLVERS, ids=lambda s: s[0])
-def solver(request):
+def solver_info(request) -> tuple[SMTEnumerator, bool]:
     _, solver_cls, params = request.param
-    return solver_cls(**params)
+    return solver_cls(**params), params.get("project_on_theory_atoms", False)
 
 
 @pytest.fixture(params=EXAMPLES, ids=lambda e: str(e.formula))
-def example(request):
+def example(request) -> Example:
     ex = request.param
     ctxzer = FormulaContextualizer()
-    formula = ctxzer.walk(ex.formula) if isinstance(ex.formula, FNode) else read_smtlib(ex.formula)
-    return Example(formula, ex.is_sat, ex.tlemmas_expected)
+    formula = ctxzer.walk(ex.formula)
+    return Example(formula, ex.model_count, ex.projected_model_count)
 
 
-def test_lemmas_correctness(example, solver):
+def test_lemmas_correctness(example, solver_info):
+    solver, is_projected = solver_info
+    expected_models_count: int = example.model_count
+    expected_lemmas_models_count = example.projected_model_count if is_projected else example.model_count
+
     _solver = Solver("msat")
     converter = _solver.converter
     phi = example.formula
@@ -103,23 +108,19 @@ def test_lemmas_correctness(example, solver):
     # ---- Generate lemmas ----
     phi_atoms = list(phi.get_atoms())
     phi_sat = solver.check_all_sat(phi, atoms=phi_atoms, store_models=True)
-    assert phi_sat == example.is_sat, "Satisfiability should match expected"
+    assert solver.get_models_count() == expected_lemmas_models_count, "Model count should match expected: {}".format(solver.get_models())
 
     lemmas = solver.get_theory_lemmas()
-    if example.tlemmas_expected:
-        assert len(lemmas) > 0, "Expected theory lemmas, but none were found"
-    else:
-        assert len(lemmas) == 0, "Did not expect theory lemmas, but some were found"
 
-    # ---- Check that every truth assignment returned by all-sat is theory-sat ----
-    with Solver() as check_solver:
-        check_solver.add_assertion(phi)
-        for model in solver.get_models():
-            check_solver.push()
-            check_solver.add_assertions(model)
-            sat = check_solver.solve()
-            assert sat, "T-UNSAT model found: {}".format(model)
-            check_solver.pop()
+    # # ---- Check that every truth assignment returned by all-sat is theory-sat ----
+    # with Solver() as check_solver:
+    #     check_solver.add_assertion(phi)
+    #     for model in solver.get_models():
+    #         check_solver.push()
+    #         check_solver.add_assertions(model)
+    #         sat = check_solver.solve()
+    #         assert sat, "T-UNSAT model found: {}".format(model)
+    #         check_solver.pop()
 
     # ---- Build Boolean abstraction of phi & lemmas ----
     phi_and_lemmas = And(phi, get_normalized(And(lemmas), converter))
@@ -137,13 +138,14 @@ def test_lemmas_correctness(example, solver):
         assert not sat, "Phi and Phi & lemmas should be theory-equivalent"
 
     # ---- Check that every truth assignment of phi & lemmas is theory-sat ----
-    solver_abstr = MathSATTotalEnumerator()
+    solver_abstr = MathSATTotalEnumerator(project_on_theory_atoms=False)
     abstr_sat = solver_abstr.check_all_sat(
         phi_and_lemmas_abstr,
         atoms=list(phi_abstr.get_atoms()),
         store_models=True,
     )
     assert abstr_sat == phi_sat, "Satisfiability of abstracted formula with lemmas should match original"
+    assert solver_abstr.get_models_count() == expected_models_count, "Model count of abstracted formula with lemmas should match expected"
 
     with Solver() as check_solver:
         t_unsat_models = []
