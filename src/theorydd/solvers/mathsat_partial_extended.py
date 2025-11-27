@@ -121,13 +121,16 @@ class MathSATExtendedPartialEnumerator(SMTEnumerator):
     Computes all-SMT by first computing partial assignments and then extending them to total ones.
     The result of the enumeration is a total enumeration of truth assignments."""
 
-    def __init__(self, computation_logger: Dict | None = None, parallel_procs: int = 1):
+    def __init__(
+        self, computation_logger: Dict | None = None, project_on_theory_atoms: bool = True, parallel_procs: int = 1
+    ):
         super().__init__(computation_logger=computation_logger)
         self.solver_partial = Solver("msat", solver_options=MSAT_PARTIAL_ENUM_OPTIONS)
         self.solver_total = Solver("msat", solver_options=MSAT_TOTAL_ENUM_OPTIONS)
         self.reset()
         self._converter_partial = self.solver_partial.converter
         self._converter_total = self.solver_total.converter
+        self._project_on_theory_atoms = project_on_theory_atoms
         self._parallel_procs = parallel_procs
 
     def reset(self):
@@ -141,7 +144,9 @@ class MathSATExtendedPartialEnumerator(SMTEnumerator):
         self.check_supports(phi)
         self.reset()
 
-        atoms = get_theory_atoms(phi) if not atoms else atoms
+        atoms = phi.get_atoms() if atoms is None else atoms
+        if self._project_on_theory_atoms:
+            atoms = get_theory_atoms(atoms)
 
         phi_cnf = PolarityCNFizer(nnf=True, mutex_nnf_labels=True).convert_as_formula(phi)
         self.solver_partial.add_assertion(phi_cnf)

@@ -4,7 +4,7 @@ from io import StringIO
 import json
 import os
 
-from typing import Iterable, List, Dict, Set, Tuple
+from typing import Collection, Iterable, List, Dict, Set, Tuple
 from pysmt.shortcuts import (
     Symbol as _Symbol,
     REAL as _REAL,
@@ -443,18 +443,8 @@ def negate(phi: FNode) -> FNode:
     Args:
         phi (FNode): a pysmt formula
 
-    Returns:
-        FNode: the negation of phi
-    """
-    return _Not(phi)
-
-def get_theory_atoms(phi: FNode) -> Set[FNode]:
-    raw_atoms = phi.get_atoms()
-    t_atoms = set()
-    for atom in raw_atoms:
-        if not atom.is_symbol(_BOOL):
-            t_atoms.add(atom)
-    return t_atoms
+def get_theory_atoms(atoms: Collection[FNode]) -> Collection[FNode]:
+    return [atom for atom in atoms if not atom.is_symbol(_BOOL)]
 
 if __name__ == "__main__":
     phi_test = default_phi()

@@ -71,9 +71,12 @@ EXAMPLES: list[Example] = [
 ]
 
 SOLVERS = [
-    ("total", MathSATTotalEnumerator, {}),
-    ("partial-1", MathSATExtendedPartialEnumerator, {"parallel_procs": 1}),
-    ("partial-8", MathSATExtendedPartialEnumerator, {"parallel_procs": 8}),
+    ("total", MathSATTotalEnumerator, {"project_on_theory_atoms": False}),
+    ("total-project", MathSATTotalEnumerator, {"project_on_theory_atoms": True}),
+    ("partial-1", MathSATExtendedPartialEnumerator, {"project_on_theory_atoms": False, "parallel_procs": 1}),
+    ("partial-project-1", MathSATExtendedPartialEnumerator, {"project_on_theory_atoms": True, "parallel_procs": 1}),
+    ("partial-8", MathSATExtendedPartialEnumerator, {"project_on_theory_atoms": False, "parallel_procs": 8}),
+    ("partial-project-8", MathSATExtendedPartialEnumerator, {"project_on_theory_atoms": True, "parallel_procs": 8}),
 ]
 
 
@@ -98,8 +101,8 @@ def test_lemmas_correctness(example, solver):
     phi = get_normalized(phi, converter)
 
     # ---- Generate lemmas ----
-    phi_atoms = phi.get_atoms()
-    phi_sat = solver.check_all_sat(phi, list(phi.get_atoms()), store_models=True)
+    phi_atoms = list(phi.get_atoms())
+    phi_sat = solver.check_all_sat(phi, atoms=phi_atoms, store_models=True)
     assert phi_sat == example.is_sat, "Satisfiability should match expected"
 
     lemmas = solver.get_theory_lemmas()
@@ -108,10 +111,20 @@ def test_lemmas_correctness(example, solver):
     else:
         assert len(lemmas) == 0, "Did not expect theory lemmas, but some were found"
 
+    # ---- Check that every truth assignment returned by all-sat is theory-sat ----
+    with Solver() as check_solver:
+        check_solver.add_assertion(phi)
+        for model in solver.get_models():
+            check_solver.push()
+            check_solver.add_assertions(model)
+            sat = check_solver.solve()
+            assert sat, "T-UNSAT model found: {}".format(model)
+            check_solver.pop()
+
     # ---- Build Boolean abstraction of phi & lemmas ----
     phi_and_lemmas = And(phi, get_normalized(And(lemmas), converter))
     phi_and_lemmas_atoms = phi_and_lemmas.get_atoms()
-    assert phi_atoms <= phi_and_lemmas_atoms
+    assert set(phi_atoms) <= phi_and_lemmas_atoms
     bool_walker = BooleanAbstractionWalker(atoms=phi_and_lemmas_atoms)
     phi_and_lemmas_abstr = bool_walker.walk(phi_and_lemmas)
     phi_abstr = bool_walker.walk(phi)
@@ -119,11 +132,9 @@ def test_lemmas_correctness(example, solver):
 
     # ---- Check that phi and phi & lemmas are theory-equivalent ----
     with Solver() as check_solver:
-        check_solver.push()
         check_solver.add_assertion(Xor(phi, phi_and_lemmas))
         sat = check_solver.solve()
         assert not sat, "Phi and Phi & lemmas should be theory-equivalent"
-        check_solver.pop()
 
     # ---- Check that every truth assignment of phi & lemmas is theory-sat ----
     solver_abstr = MathSATTotalEnumerator()
