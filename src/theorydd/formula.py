@@ -437,12 +437,6 @@ def get_fnode_size(phi: FNode) -> int:
     walker = CountingWalker()
     return walker.walk(phi)
 
-def negate(phi: FNode) -> FNode:
-    """returns the negation of phi
-
-    Args:
-        phi (FNode): a pysmt formula
-
 def get_theory_atoms(atoms: Collection[FNode]) -> Collection[FNode]:
     return [atom for atom in atoms if not atom.is_symbol(_BOOL)]
 
