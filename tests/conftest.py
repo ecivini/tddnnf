@@ -1,6 +1,7 @@
 import pysmt.environment
 import pytest
-from pysmt.shortcuts import And, Equals, LT, Not, Or, REAL, Real, Symbol
+from pysmt.shortcuts import REAL, Symbol
+from pysmt.typing import ArrayType, BOOL, INT
 
 from theorydd.formula import read_phi
 from theorydd.solvers.mathsat_partial_extended import MathSATExtendedPartialEnumerator
@@ -24,55 +25,115 @@ SOLVERS = [
 
 
 @pytest.fixture(params=SOLVERS, ids=lambda s: s[0])
-def solver_info(request) -> tuple[SMTEnumerator, bool]:
+def solver(request) -> SMTEnumerator:
     _, solver_cls, params = request.param
-    return solver_cls(**params), params.get("project_on_theory_atoms", False)
+    return solver_cls(**params)
 
 
 @pytest.fixture
-def sat_formula():
-    """SAT formula fixture"""
-    return Or(
-        LT(Symbol("X", REAL), Symbol("Y", REAL)),
-        LT(Symbol("Y", REAL), Symbol("Zr", REAL)),
-        LT(Symbol("Zr", REAL), Symbol("X", REAL)),
-        Equals(Symbol("X", REAL), Real(5)),
-    )
+def solver_info(solver) -> tuple[SMTEnumerator, bool]:
+    return solver, getattr(solver, "_project_on_theory_atoms", False)
+
+
+# ---- Real variables ----
+@pytest.fixture
+def w():
+    return Symbol("w", REAL)
 
 
 @pytest.fixture
-def unsat_formula():
-    """UNSAT formula fixture (cyclic inequalities)"""
-    return And(
-        LT(Symbol("X", REAL), Symbol("Y", REAL)),
-        LT(Symbol("Y", REAL), Symbol("Zr", REAL)),
-        LT(Symbol("Zr", REAL), Symbol("X", REAL)),
-    )
-
-@pytest.fixture
-def prop_unsat_formula():
-    """Propositional UNSAT formula fixture"""
-    return And(
-        LT(Symbol("X", REAL), Symbol("Y", REAL)),
-        Not(LT(Symbol("X", REAL), Symbol("Y", REAL))),
-    )
+def x():
+    return Symbol("x", REAL)
 
 
 @pytest.fixture
-def valid_formula():
-    """Valid/tautology formula fixture"""
-    return Or(
-        LT(Symbol("X", REAL), Real(1)),
-        Not(LT(Symbol("X", REAL), Real(0))),
-    )
+def y():
+    return Symbol("y", REAL)
+
 
 @pytest.fixture
-def prop_valid_formula():
-    """Propositional valid/tautology formula fixture"""
-    return Or(
-        LT(Symbol("X", REAL), Symbol("Y", REAL)),
-        Not(LT(Symbol("X", REAL), Symbol("Y", REAL))),
-    )
+def z():
+    return Symbol("z", REAL)
+
+
+# ---- Integer variables ----
+
+
+@pytest.fixture
+def i():
+    return Symbol("i", INT)
+
+
+@pytest.fixture
+def j():
+    return Symbol("j", INT)
+
+
+@pytest.fixture
+def k():
+    return Symbol("k", INT)
+
+
+# ---- Boolean variables ----
+
+
+@pytest.fixture
+def a():
+    return Symbol("a", BOOL)
+
+
+@pytest.fixture
+def b():
+    return Symbol("b", BOOL)
+
+
+# ---- BV variables ----
+@pytest.fixture
+def bv1():
+    return Symbol("bv1", pysmt.typing.BV8)
+
+
+@pytest.fixture
+def bv2():
+    return Symbol("bv2", pysmt.typing.BV8)
+
+
+# ---- Array variables ----
+
+
+@pytest.fixture
+def array1():
+    return Symbol("arr1", ArrayType(INT, INT))
+
+
+@pytest.fixture
+def array2():
+    return Symbol("arr2", ArrayType(INT, INT))
+
+
+@pytest.fixture
+def sat_formula(x, y, z):
+    return (x < y) | (y < z) | (z < x) | x.Equals(5)
+
+
+@pytest.fixture
+def unsat_formula(x, y, z):
+    return (x < y) & (y < z) & (z < x)
+
+
+@pytest.fixture
+def prop_unsat_formula(x, y):
+    return (x < y) & ~(x < y)
+
+
+@pytest.fixture
+def valid_formula(x):
+    return (x < 1) | ~(x < 0)
+
+
+@pytest.fixture
+def prop_valid_formula(x, y):
+    return (x < y) | ~(x < y)
 
 
 @pytest.fixture

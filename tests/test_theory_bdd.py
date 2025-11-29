@@ -61,9 +61,8 @@ def test_init_tautology(prop_valid_formula):
     assert tbdd.count_models() == 2, "TBDD should have 2 models (atom True and atom false)"
 
 
-def test_init_models(solver_info, any_formula):
+def test_init_models(solver, any_formula):
     """tests that models of the T-BDD are also models of phi"""
-    solver, _ = solver_info
     solver.check_all_sat(any_formula, None, store_models=True)
     tlemmas = solver.get_theory_lemmas()
     tbdd = TheoryBDD(any_formula, solver=solver, tlemmas=tlemmas)
