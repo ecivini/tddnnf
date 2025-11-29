@@ -1,6 +1,7 @@
 import multiprocessing
 from dataclasses import dataclass
 from typing import Callable, Iterable
+from unittest import TestCase
 
 import pytest
 from pysmt.fnode import FNode
@@ -14,7 +15,7 @@ from theorydd.walkers.walker_refinement import RefinementWalker
 
 
 @dataclass
-class TestCase:
+class TCase:
     name: str
     formula_builder: Callable[[dict[str, FNode]], FNode]
     model_count: int
@@ -58,52 +59,52 @@ def all_vars(bool_vars, real_vars, int_vars, bv_vars, array_vars) -> dict[str, d
 
 
 ALL_RAW_TEST_CASES = [
-    TestCase("Bool only", lambda s: (s["A"] | s["B"]) & (~s["A"] | ~s["B"]), 2, 2),
-    TestCase("Eq unsat", lambda s: s["x"].Equals(s["y"]) & s["x"].Equals(s["z"]) & ~s["y"].Equals(s["z"]), 0, 0),
-    TestCase("LRA unsat", lambda s: (s["x"] <= 0) & (s["x"] >= 1), 0, 0),
-    TestCase("LRA unsat eq", lambda s: s["x"].Equals(0) & (s["x"] + 1).Equals(0), 0, 0),
-    TestCase("LRA no lemmas", lambda s: (s["x"] >= 0) ^ (s["x"] <= 1), 2, 2),
-    TestCase("LRA disj lemma", lambda s: (s["x"] <= 0) | (s["x"] >= 1), 2, 2),
-    TestCase("LRA two vars", lambda s: (s["x"] + s["y"] >= 1) | (s["x"] + s["y"] <= 0), 2, 2),
-    TestCase("LRA+Bool simple", lambda s: ((s["x"] + s["y"] >= 1) & s["A"]) | ((s["x"] + s["y"] <= 0) & ~s["A"]), 2, 2),
-    TestCase("LRA+Bool unsat", lambda s: (s["A"] | (s["x"] > 0)) & (~s["A"] | (s["x"] < 0)) & s["x"].Equals(0), 0, 0),
-    TestCase("LRA+Bool proj", lambda s: ((~s["A"] | (s["x"] + s["y"] >= 1)) & (~s["B"] | (s["x"] <= 0))), 9, 4),
-    TestCase(
+    TCase("Bool only", lambda s: (s["A"] | s["B"]) & (~s["A"] | ~s["B"]), 2, 2),
+    TCase("Eq unsat", lambda s: s["x"].Equals(s["y"]) & s["x"].Equals(s["z"]) & ~s["y"].Equals(s["z"]), 0, 0),
+    TCase("LRA unsat", lambda s: (s["x"] <= 0) & (s["x"] >= 1), 0, 0),
+    TCase("LRA unsat eq", lambda s: s["x"].Equals(0) & (s["x"] + 1).Equals(0), 0, 0),
+    TCase("LRA no lemmas", lambda s: (s["x"] >= 0) ^ (s["x"] <= 1), 2, 2),
+    TCase("LRA disj lemma", lambda s: (s["x"] <= 0) | (s["x"] >= 1), 2, 2),
+    TCase("LRA two vars", lambda s: (s["x"] + s["y"] >= 1) | (s["x"] + s["y"] <= 0), 2, 2),
+    TCase("LRA+Bool simple", lambda s: ((s["x"] + s["y"] >= 1) & s["A"]) | ((s["x"] + s["y"] <= 0) & ~s["A"]), 2, 2),
+    TCase("LRA+Bool unsat", lambda s: (s["A"] | (s["x"] > 0)) & (~s["A"] | (s["x"] < 0)) & s["x"].Equals(0), 0, 0),
+    TCase("LRA+Bool proj", lambda s: ((~s["A"] | (s["x"] + s["y"] >= 1)) & (~s["B"] | (s["x"] <= 0))), 9, 4),
+    TCase(
         "LRA eq lemma", lambda s: ~s["x"].Equals(s["y"]) | ((s["x"] >= Real(1)) & (s["x"] + s["y"] <= Real(0))), 4, 4
     ),
-    TestCase("LIRA simple", lambda s: (s["x"] >= 0.5) & (s["x"] <= 1.5) & ToReal(s["i"]).Equals(s["x"]), 1, 1),
-    TestCase("LIRA disj", lambda s: (s["x"] + ToReal(s["i"]) >= 2.5) | (ToReal(s["i"]) <= 0.5), 3, 3),
-    TestCase(
+    TCase("LIRA simple", lambda s: (s["x"] >= 0.5) & (s["x"] <= 1.5) & ToReal(s["i"]).Equals(s["x"]), 1, 1),
+    TCase("LIRA disj", lambda s: (s["x"] + ToReal(s["i"]) >= 2.5) | (ToReal(s["i"]) <= 0.5), 3, 3),
+    TCase(
         "LIRA complex",
         lambda s: ((s["x"] + ToReal(s["i"]) >= 3.5) & (s["y"] <= 1.0))
         | (s["A"] & (s["x"] + 2 * ToReal(s["i"]) <= 0.0)),
         7,
         5,
     ),
-    TestCase("LIRA unsat", lambda s: (ToReal(s["i"]) > 1) & (ToReal(s["i"]) < 2), 0, 0),
-    TestCase(
+    TCase("LIRA unsat", lambda s: (ToReal(s["i"]) > 1) & (ToReal(s["i"]) < 2), 0, 0),
+    TCase(
         "LIRA unsat 2 vars", lambda s: (s["x"] + s["y"] < 5) & (s["x"] + s["y"] > 10) & s["y"].Equals(s["x"] + 1), 0, 0
     ),
-    TestCase(
+    TCase(
         "LIRA+Bool",
         lambda s: (~s["A"] & (2 * s["i"]).Equals(3 * s["j"])) | ((s["i"] < 10) & (s["i"] + s["j"] > 10)),
         6,
         4,
     ),
-    TestCase(
+    TCase(
         "BV lemma",
         lambda s: s["bv2"].Equals(BV(1, 8)) & ~(s["bv1"] + s["bv2"]).Equals(BV(0, 8)) | s["bv1"].Equals(BV(255, 8)),
         3,
         3,
     ),
-    TestCase("BV disj", lambda s: (s["bv1"] + s["bv2"] < BV(10, 8)) | (s["bv1"] + s["bv2"] > BV(20, 8)), 2, 2),
-    TestCase(
+    TCase("BV disj", lambda s: (s["bv1"] + s["bv2"] < BV(10, 8)) | (s["bv1"] + s["bv2"] > BV(20, 8)), 2, 2),
+    TCase(
         "BV unsat",
         lambda s: And((s["bv1"] - BV(1, 8)).Equals(BV(127, 8)) & ~s["bv1"].Equals(BV(128, 8))),
         0,
         0,
     ),
-    TestCase(
+    TCase(
         "BV disj one side",
         lambda s: And(
             (s["bv1"] ^ BV(1, 8)).Equals(BV(0, 8)),
@@ -112,21 +113,21 @@ ALL_RAW_TEST_CASES = [
         1,
         1,
     ),
-    TestCase(
+    TCase(
         "Arrays select-store",
         lambda s: ~s["arr1"].Select(s["i"]).Equals(s["j"]) | ~s["arr2"].Equals(s["arr1"].Store(s["i"], s["j"])),
         3,
         3,
     ),
-    TestCase("Arrays unsat", lambda s: s["arr1"].Store(s["i"], Int(1)).Select(s["i"]).Equals(0), 0, 0),
-    TestCase(
+    TCase("Arrays unsat", lambda s: s["arr1"].Store(s["i"], Int(1)).Select(s["i"]).Equals(0), 0, 0),
+    TCase(
         "Arrays+LIA simple",
         lambda s: s["arr1"].Select(s["i"]).Equals(s["j"])
         | (s["j"].Equals(s["j"]) | s["arr2"].Store(s["i"], s["j"] + 1).Select(s["i"]).Equals(s["arr1"].Select(s["i"]))),
         3,
         3,
     ),
-    TestCase(
+    TCase(
         "Arrays+LRA unsat",
         lambda s: s["arr1"].Select(s["i"]).Equals(s["j"])
         & s["arr2"].Equals(s["arr1"].Store(s["i"], s["j"] + 1))
@@ -134,9 +135,9 @@ ALL_RAW_TEST_CASES = [
         0,
         0,
     ),
-    TestCase("Test lemmas", lambda _: read_smtlib("./tests/items/test_lemmas.smt2"), 1, 1),
-    TestCase("Planning", lambda _: read_smtlib("./tests/items/6_2.smt2"), 360, 360),
-    TestCase("Randgen", lambda _: read_smtlib("./tests/items/rng.smt"), 12, 2),
+    TCase("Test lemmas", lambda _: read_smtlib("./tests/items/test_lemmas.smt2"), 1, 1),
+    TCase("Planning", lambda _: read_smtlib("./tests/items/6_2.smt2"), 360, 360),
+    TCase("Randgen", lambda _: read_smtlib("./tests/items/rng.smt"), 12, 2),
 ]
 
 
