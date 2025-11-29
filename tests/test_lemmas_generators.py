@@ -4,19 +4,7 @@ from typing import Callable, Iterable
 
 import pytest
 from pysmt.fnode import FNode
-from pysmt.shortcuts import (
-    And,
-    BV,
-    BVSGE,
-    Iff,
-    Int,
-    Ite,
-    Or,
-    Real,
-    Solver,
-    ToReal,
-    read_smtlib,
-)
+from pysmt.shortcuts import BV, BVSGE, And, Iff, Int, Ite, Or, Real, Solver, ToReal, read_smtlib
 
 from theorydd.formula import get_normalized
 from theorydd.solvers.mathsat_partial_extended import MathSATExtendedPartialEnumerator
@@ -25,19 +13,10 @@ from theorydd.walkers.walker_bool_abstraction import BooleanAbstractionWalker
 from theorydd.walkers.walker_refinement import RefinementWalker
 
 
-@dataclass()
-class Constraints:
-    real: dict[str, FNode]
-    integer: dict[str, FNode]
-    bv: dict[str, FNode]
-    array: dict[str, FNode]
-    prop: dict[str, FNode]
-
-
 @dataclass
 class TestCase:
     name: str
-    formula_builder: Callable[[list[Constraints]], FNode]
+    formula_builder: Callable[[dict[str, FNode]], FNode]
     model_count: int
     projected_model_count: int
 
@@ -155,20 +134,9 @@ ALL_RAW_TEST_CASES = [
         0,
         0,
     ),
-    TestCase(
-        "Test lemmas",
-        lambda _: read_smtlib("./tests/items/test_lemmas.smt2"), 1, 1
-    ),
-    TestCase(
-        "Planning",
-        lambda _: read_smtlib("./tests/items/6_2.smt2"),
-        360, 360),
-    TestCase(
-        "Randgen",
-        lambda _: read_smtlib("./tests/items/rng.smt"),
-        12,
-        2,
-    ),
+    TestCase("Test lemmas", lambda _: read_smtlib("./tests/items/test_lemmas.smt2"), 1, 1),
+    TestCase("Planning", lambda _: read_smtlib("./tests/items/6_2.smt2"), 360, 360),
+    TestCase("Randgen", lambda _: read_smtlib("./tests/items/rng.smt"), 12, 2),
 ]
 
 
