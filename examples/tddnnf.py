@@ -23,7 +23,7 @@ def main():
         base_out_path=f"data/{EXAMPLE_CODE}",
         store_tlemmas=True,
         stop_after_allsmt=True,
-        solver=MathSATTotalEnumerator(),
+        solver=MathSATTotalEnumerator(project_on_theory_atoms=True, computation_logger=logger)
     )
 
     # solver = Solver()
