@@ -1,7 +1,7 @@
 import multiprocessing
+import pathlib
 from dataclasses import dataclass
 from typing import Callable, Iterable
-from unittest import TestCase
 
 import pytest
 from pysmt.fnode import FNode
@@ -13,6 +13,7 @@ from theorydd.solvers.mathsat_total import MathSATTotalEnumerator
 from theorydd.walkers.walker_bool_abstraction import BooleanAbstractionWalker
 from theorydd.walkers.walker_refinement import RefinementWalker
 
+INPUT_FILES_PATH = pathlib.Path(__file__).parent / "items"
 
 @dataclass
 class TCase:
@@ -135,9 +136,10 @@ ALL_RAW_TEST_CASES = [
         0,
         0,
     ),
-    TCase("Test lemmas", lambda _: read_smtlib("./tests/items/test_lemmas.smt2"), 1, 1),
-    TCase("Planning", lambda _: read_smtlib("./tests/items/6_2.smt2"), 360, 360),
-    TCase("Randgen", lambda _: read_smtlib("./tests/items/rng.smt"), 12, 2),
+    TCase("Test lemmas", lambda _: read_smtlib(str(INPUT_FILES_PATH / "test_lemmas.smt2")), 1, 1),
+    TCase("Planning", lambda _: read_smtlib(str(INPUT_FILES_PATH / "6_2.smt2")), 360, 360),
+    TCase("Randgen", lambda _: read_smtlib(str(INPUT_FILES_PATH / "rng.smt")), 12, 2),
+    TCase("Randgen big", lambda _: read_smtlib(str(INPUT_FILES_PATH / "b10_d5_r10_s12345_01.smt2")), 88, 16),
 ]
 
 
@@ -171,6 +173,11 @@ def assert_lemmas_are_tvalid(lemmas: list[FNode]):
                 lemma.serialize(), check_solver.get_model()
             )
             check_solver.pop()
+
+
+def assert_phi_equiv_phi_and_lemmas(phi: FNode, phi_and_lemmas):
+    with Solver("msat") as check_solver:
+        assert check_solver.is_valid(Iff(phi, phi_and_lemmas)), "Phi and Phi & lemmas are not theory-equivalent"
 
 
 def test_lemmas_correctness(example, solver_info):
@@ -219,11 +226,6 @@ def test_lemmas_correctness(example, solver_info):
     refinement_walker = RefinementWalker(abstraction=bool_walker.abstraction)
     refined_models = [[refinement_walker.walk(lit) for lit in model] for model in solver_abstr.get_models()]
     assert_models_are_tsat(phi, refined_models)
-
-
-def assert_phi_equiv_phi_and_lemmas(phi: FNode, phi_and_lemmas):
-    with Solver("msat") as check_solver:
-        assert check_solver.is_valid(Iff(phi, phi_and_lemmas)), "Phi and Phi & lemmas are not theory-equivalent"
 
 
 def test_term_ite_exception(solver, x, y, a):
