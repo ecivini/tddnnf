@@ -35,7 +35,9 @@
 ; --- Linear integer relations (all linear, no nonlinear variable multiplications)
 (assert (= x2 (+ x1 3)))                          ; x2 = x1 + 3
 (assert (= x3 (- (* 2 x1) x2)))                   ; x3 = 2*x1 - x2
-(assert (= x4 (ite (> x1 0) (- x1 3) (+ (- x1) 5)))) ; piecewise integer: if x1>0 then x1-3 else -x1+5
+; piecewise integer: x4 = if x1>0 then x1-3 else -x1+5
+(assert (=> (> x1 0) (= x4 (- x1 3))))
+(assert (=> (<= x1 0) (= x4 (+ (- x1) 5))))
 (assert (= x5 (+ x2 x3 x4)))                      ; x5 = x2 + x3 + x4
 
 ; bounds on x6 using x5
@@ -47,7 +49,9 @@
 (assert (= x9 (+ x7 2)))                          ; x9 = x7 + 2
 (assert (= x8 (- x9 2)))                          ; x8 = x9 - 2
 (assert (= x10 (- 10 (+ x7 x8))))                 ; x10 = 10 - (x7 + x8)
-(assert (= x11 (ite (> x10 0) (- x10 2) (+ x10 5)))) ; x11 = x10-2 if x10>0 else x10+5
+; x11 = x10-2 if x10>0 else x10+5
+(assert (=> (> x10 0) (= x11 (- x10 2))))
+(assert (=> (<= x10 0) (= x11 (+ x10 5))))
 (assert (= x12 (- 3 x11)))                        ; x12 = 3 - x11
 
 ; a nontrivial summed invariant (consistent with the anchored solution)
@@ -57,7 +61,8 @@
 (assert (= x13 (- x6 x1)))                        ; x13 = x6 - x1
 (assert (= x14 (- x13 2)))                        ; x14 = x13 - 2
 (assert (= x15 (+ x14 5)))                        ; x15 = x14 + 5
-(assert (= x16 (ite (>= x15 3) 3 x15)))           ; cap x16 at 3 if x15 >= 3
+(assert (=> (>= x15 3) (= x16 3)))
+(assert (=> (< x15 3) (= x16 x15)))
 (assert (= x17 (+ (* -2 x16) 7)))                 ; x17 = -2*x16 + 7
 (assert (= x18 (- x17 1)))                        ; x18 = x17 - 1
 (assert (= x20 (+ x19 1)))                        ; small offset added to x19

@@ -1,42 +1,31 @@
 """tests for Abstraction SDDs"""
 
 from copy import deepcopy
+
 from theorydd.abstractdd.abstraction_sdd import AbstractionSDD
 from theorydd.solvers.mathsat_total import MathSATTotalEnumerator
-from pysmt.shortcuts import Or, LT, REAL, Symbol, And, Not
 
 
-def test_init_default():
+def test_init_default(sat_formula):
     """tests abstraction SDD generation"""
-    phi = Or(
-        LT(Symbol("X", REAL), Symbol("Y", REAL)),
-        LT(Symbol("Y", REAL), Symbol("Zr", REAL)),
-        LT(Symbol("Zr", REAL), Symbol("X", REAL)),
-    )
-    partial = MathSATTotalEnumerator()
-    partial.check_all_sat(phi, None)
-    models = partial.get_models()
-    asdd = AbstractionSDD(phi, "total")
+    solver = MathSATTotalEnumerator()
+    solver.check_all_sat(sat_formula, None)
+    models = solver.get_models()
+    asdd = AbstractionSDD(sat_formula, "total")
     assert asdd.count_nodes() > 1, "abstr. SDD is not only True or False node"
     assert asdd.count_models() > len(
         models
     ), "abstr. SDD should have more models then the models found during All-SMT computation"
 
 
-def test_init_updated_computation_logger():
+def test_init_updated_computation_logger(sat_formula):
     """tests abstraction SDD generation"""
-    phi = Or(
-        LT(Symbol("X", REAL), Symbol("Y", REAL)),
-        LT(Symbol("Y", REAL), Symbol("Zr", REAL)),
-        LT(Symbol("Zr", REAL), Symbol("X", REAL)),
-    )
-    partial = MathSATTotalEnumerator()
-    partial.check_all_sat(phi, None)
-    models = partial.get_models()
-    logger = {}
-    logger["hi"] = "hello"
+    solver = MathSATTotalEnumerator()
+    solver.check_all_sat(sat_formula, None)
+    models = solver.get_models()
+    logger = {"hi": "hello"}
     copy_logger = deepcopy(logger)
-    asdd = AbstractionSDD(phi, "total", computation_logger=logger)
+    asdd = AbstractionSDD(sat_formula, "total", computation_logger=logger)
     assert asdd.count_nodes() > 1, "abstr. SDD is not only True or False node"
     assert asdd.count_models() >= len(
         models
@@ -47,42 +36,29 @@ def test_init_updated_computation_logger():
     ), "Old field of Logger should not be touched"
 
 
-def test_init_t_unsat_formula():
+def test_init_t_unsat_formula(unsat_formula):
     """tests abstraction SDD generation"""
-    phi = And(
-        LT(Symbol("X", REAL), Symbol("Y", REAL)),
-        LT(Symbol("Y", REAL), Symbol("Zr", REAL)),
-        LT(Symbol("Zr", REAL), Symbol("X", REAL)),
-    )
-    partial = MathSATTotalEnumerator()
-    partial.check_all_sat(phi, None)
-    asdd = AbstractionSDD(phi, "total")
+    solver = MathSATTotalEnumerator()
+    solver.check_all_sat(unsat_formula, None)
+    asdd = AbstractionSDD(unsat_formula, "total")
     assert asdd.count_nodes() > 1, "abstr. SDD is not only False node"
     assert asdd.count_models() > 0, "abstr. SDD should have models"
 
 
-def test_init_bool_unsat_formula():
+def test_init_prop_unsat_formula(prop_unsat_formula):
     """tests abstraction SDD generation"""
-    phi = And(
-        LT(Symbol("X", REAL), Symbol("Y", REAL)),
-        Not(LT(Symbol("X", REAL), Symbol("Y", REAL))),
-    )
-    partial = MathSATTotalEnumerator()
-    partial.check_all_sat(phi, None)
-    asdd = AbstractionSDD(phi, "total")
+    solver = MathSATTotalEnumerator()
+    solver.check_all_sat(prop_unsat_formula, None)
+    asdd = AbstractionSDD(prop_unsat_formula, "total")
     assert asdd.count_nodes() == 1, "abstr. SDD is only False node"
     assert asdd.count_models() == 0, "abstr. SDD should have no models"
 
 
-def test_init_tautology():
+def test_init_tautology(prop_valid_formula):
     """tests abstraction SDD generation"""
-    phi = Or(
-        LT(Symbol("X", REAL), Symbol("Y", REAL)),
-        Not(LT(Symbol("X", REAL), Symbol("Y", REAL))),
-    )
-    partial = MathSATTotalEnumerator()
-    partial.check_all_sat(phi, None)
-    asdd = AbstractionSDD(phi, "total")
+    solver = MathSATTotalEnumerator()
+    solver.check_all_sat(prop_valid_formula, None)
+    asdd = AbstractionSDD(prop_valid_formula, "total")
     assert asdd.count_nodes() == 1, "TSDD is only True node"
     assert (
         asdd.count_models() == 2

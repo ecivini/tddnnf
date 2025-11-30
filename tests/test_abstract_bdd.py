@@ -6,37 +6,26 @@ from theorydd.solvers.mathsat_total import MathSATTotalEnumerator
 from pysmt.shortcuts import Or, LT, REAL, Symbol, And, Not
 
 
-def test_init_default():
+def test_init_default(sat_formula):
     """tests abstraction BDD generation"""
-    phi = Or(
-        LT(Symbol("X", REAL), Symbol("Y", REAL)),
-        LT(Symbol("Y", REAL), Symbol("Zr", REAL)),
-        LT(Symbol("Zr", REAL), Symbol("X", REAL)),
-    )
     partial = MathSATTotalEnumerator()
-    partial.check_all_sat(phi, None)
+    partial.check_all_sat(sat_formula, None)
     models = partial.get_models()
-    abdd = AbstractionBDD(phi, "total")
+    abdd = AbstractionBDD(sat_formula, "total")
     assert abdd.count_nodes() > 1, "abstr. BDD is not only True or False node"
     assert abdd.count_models() > len(
         models
     ), "abstr. BDD should have more models then the models found during All-SMT computation"
 
 
-def test_init_updated_computation_logger():
+def test_init_updated_computation_logger(sat_formula):
     """tests abstraction BDD generation"""
-    phi = Or(
-        LT(Symbol("X", REAL), Symbol("Y", REAL)),
-        LT(Symbol("Y", REAL), Symbol("Zr", REAL)),
-        LT(Symbol("Zr", REAL), Symbol("X", REAL)),
-    )
     partial = MathSATTotalEnumerator()
-    partial.check_all_sat(phi, None)
+    partial.check_all_sat(sat_formula, None)
     models = partial.get_models()
-    logger = {}
-    logger["hi"] = "hello"
+    logger = {"hi": "hello"}
     copy_logger = deepcopy(logger)
-    abdd = AbstractionBDD(phi, "total", computation_logger=logger)
+    abdd = AbstractionBDD(sat_formula, "total", computation_logger=logger)
     assert abdd.count_nodes() > 1, "abstr. BDD is not only True or False node"
     assert abdd.count_models() >= len(
         models
@@ -47,42 +36,29 @@ def test_init_updated_computation_logger():
     ), "Old field of Logger should not be touched"
 
 
-def test_init_t_unsat_formula():
+def test_init_t_unsat_formula(unsat_formula):
     """tests abstraction BDD generation"""
-    phi = And(
-        LT(Symbol("X", REAL), Symbol("Y", REAL)),
-        LT(Symbol("Y", REAL), Symbol("Zr", REAL)),
-        LT(Symbol("Zr", REAL), Symbol("X", REAL)),
-    )
     partial = MathSATTotalEnumerator()
-    partial.check_all_sat(phi, None)
-    abdd = AbstractionBDD(phi, "total")
+    partial.check_all_sat(unsat_formula, None)
+    abdd = AbstractionBDD(unsat_formula, "total")
     assert abdd.count_nodes() > 1, "abstr. BDD is not only False node"
     assert abdd.count_models() > 0, "abstr. BDD should have models"
 
 
-def test_init_bool_unsat_formula():
+def test_init_prop_unsat_formula(prop_unsat_formula):
     """tests abstraction BDD generation"""
-    phi = And(
-        LT(Symbol("X", REAL), Symbol("Y", REAL)),
-        Not(LT(Symbol("X", REAL), Symbol("Y", REAL))),
-    )
     partial = MathSATTotalEnumerator()
-    partial.check_all_sat(phi, None)
-    abdd = AbstractionBDD(phi, "total")
+    partial.check_all_sat(prop_unsat_formula, None)
+    abdd = AbstractionBDD(prop_unsat_formula, "total")
     assert abdd.count_nodes() == 1, "abstr. BDD is only False node"
     assert abdd.count_models() == 0, "abstr. BDD should have no models"
 
 
-def test_init_tautology():
+def test_init_tautology(prop_valid_formula):
     """tests abstraction BDD generation"""
-    phi = Or(
-        LT(Symbol("X", REAL), Symbol("Y", REAL)),
-        Not(LT(Symbol("X", REAL), Symbol("Y", REAL))),
-    )
     partial = MathSATTotalEnumerator()
-    partial.check_all_sat(phi, None)
-    abdd = AbstractionBDD(phi, "total")
+    partial.check_all_sat(prop_valid_formula, None)
+    abdd = AbstractionBDD(prop_valid_formula, "total")
     assert abdd.count_nodes() == 1, "TBDD is only True node"
     assert (
         abdd.count_models() == 2

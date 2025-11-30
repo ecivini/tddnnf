@@ -1,15 +1,23 @@
 """theory BDD module"""
 
 import json
-import time
-import os
 import logging
-from typing import Dict, List
+import os
+import time
 from collections.abc import Iterator
-from pysmt.fnode import FNode
+from typing import Dict, List
+
 import pydot
 from dd import cudd as cudd_bdd
+from pysmt.fnode import FNode
+from pysmt.shortcuts import And, Not, Or
+
 from theorydd import formula
+from theorydd.constants import SAT
+from theorydd.formula import get_atoms
+from theorydd.solvers.lemma_extractor import find_qvars
+from theorydd.solvers.solver import SMTEnumerator
+from theorydd.tdd.theory_dd import TheoryDD
 from theorydd.util._dd_dump_util import change_bbd_dot_names as _change_bbd_dot_names
 from theorydd.util._string_generator import SequentialStringGenerator
 from theorydd.util._utils import (
@@ -17,12 +25,7 @@ from theorydd.util._utils import (
     cudd_load as _cudd_load,
     get_solver as _get_solver,
 )
-from theorydd.solvers.solver import SMTEnumerator
-from theorydd.formula import get_atoms
 from theorydd.walkers.walker_bdd import BDDWalker
-from theorydd.solvers.lemma_extractor import find_qvars
-from theorydd.constants import SAT
-from theorydd.tdd.theory_dd import TheoryDD
 
 
 class TheoryBDD(TheoryDD):
@@ -398,6 +401,30 @@ class TheoryBDD(TheoryDD):
         with open(f"{folder_path}/qvars.qvars", "r", encoding="utf8") as input_data:
             qvars_indexes = json.load(input_data)
             self.qvars = [self.refinement[qvar_id] for qvar_id in qvars_indexes]
+
+    def to_pysmt(self) -> FNode:
+        """Converts the T-BDD back to a pysmt formula
+
+        Returns:
+            FNode: the pysmt formula equivalent to the T-BDD
+        """
+        # ITE(A, B, C) = => (A & B) | (~A & C)
+        def _convert_node(node: cudd_bdd.Function) -> FNode:
+            if node == self.bdd.true:
+                return formula.top()
+            if node == self.bdd.false:
+                return formula.bottom()
+            var_name = node.var
+            var_atom = self.refinement[var_name]
+            high_node = node.high
+            low_node = node.low
+            high_formula = _convert_node(high_node)
+            low_formula = _convert_node(low_node)
+            return Or(
+                And(var_atom, high_formula),
+                And(Not(var_atom), low_formula),
+            )
+        return _convert_node(self.root)
 
 
 def tbdd_load_from_folder(

@@ -57,7 +57,6 @@ class BooleanAbstractionWalker(DagWalker):
         if formula not in self.abstraction:
             var_name = f"v{len(self.abstraction)}"
             abstr_var = self.env.formula_manager.Symbol(var_name, BOOL)
-            print("abstracting", formula, "into", abstr_var)
             self.abstraction[formula] = abstr_var
         return self.abstraction[formula]
 
