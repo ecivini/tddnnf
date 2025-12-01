@@ -5,6 +5,7 @@ from typing import Callable, Iterable
 
 import pytest
 from pysmt.fnode import FNode
+from pysmt.oracles import get_logic
 from pysmt.shortcuts import Array, BV, BVSGE, And, Iff, Int, Ite, Or, Real, Solver, ToReal, read_smtlib
 from pysmt.typing import INT
 
@@ -221,14 +222,16 @@ def test_lemmas_correctness(example, solver_info):
     phi_abstr = bool_walker.walk(phi)
     assert len(phi_abstr.get_atoms()) == len(phi_atoms), "Abstraction should preserve atoms of phi"
 
-    # NOTE: Some lemmas (e.g. for Arrays Extensionality) introduce fresh Skolem variables, which should be existentially
-    # quantified for the lemma to be t-valid.
+    # NOTE: Some lemmas introduce fresh Skolem variables, which should be existentially quantified for the lemma to
+    # be t-valid.
     # However, MathSAT does not support quantifiers, and will flag these lemmas as non t-valid.
-    # We then disable these checks:
-    # assert_lemmas_are_tvalid(lemmas)
-    # assert_phi_equiv_phi_and_lemmas(phi, phi_and_lemmas)
     # Anyway, these new variables only appear in fresh atoms, which are later existentially quantified, so that
     # correctness is preserved.
+    # It seems the only case this happens is with arrays (e.g. extensionality lemma), so we skip the following checks
+    # in that case.
+    if not get_logic(phi).theory.arrays:
+        assert_lemmas_are_tvalid(lemmas)
+        assert_phi_equiv_phi_and_lemmas(phi, phi_and_lemmas)
 
     solver_abstr = MathSATTotalEnumerator(project_on_theory_atoms=False)
     abstr_sat = solver_abstr.check_all_sat(
