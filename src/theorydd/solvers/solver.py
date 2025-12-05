@@ -1,12 +1,13 @@
 """interface that all solvers must implement."""
 
 from abc import ABC, abstractmethod
-from typing import Dict, Set, List
+from typing import Dict, List
 
-from pysmt.shortcuts import BOOL
 from pysmt.fnode import FNode
+
 from theorydd.constants import SAT, UNSAT
-from theorydd.formula import get_normalized, get_atom_partitioning, get_true_given_atoms
+from theorydd.formula import get_atom_partitioning, get_normalized, get_true_given_atoms
+from theorydd.walkers.term_ite_checker import TermIteChecker
 
 
 class SMTEnumerator(ABC):
@@ -15,21 +16,27 @@ class SMTEnumerator(ABC):
     This interface must be implemented by all the solvers that are used to compute all-SMT.
     """
 
-    def __init__(self):
+    def __init__(self, computation_logger: Dict | None = None):
         self._tlemmas = []
-        pass
+        self._computation_logger = computation_logger
 
     @abstractmethod
     def check_all_sat(
-        self,
-        phi: FNode,
-        boolean_mapping: Dict | None = None,
-        parallel_procs: int = 1,
-        atoms: List[FNode] | None = None,
-        computation_logger: Dict | None = None,
-        store_models: bool = False
+            self,
+            phi: FNode,
+            atoms: List[FNode] | None = None,
+            store_models: bool = False
     ) -> bool:
-        """check T-satisfiability of a formula"""
+        """Runs All-SMT on the formula phi and stores t-lemmas
+
+        Args:
+            phi (FNode): a pysmt formula
+            atoms (List[FNode] | None) [None]: list of atoms to consider for All-SMT
+            store_models (bool) [False]: if True, the models found during All-SMT are stored
+
+        Returns:
+            bool: SAT or UNSAT, depending on satisfiability of phi
+        """
         pass
 
     @abstractmethod
@@ -51,7 +58,19 @@ class SMTEnumerator(ABC):
     def get_models_count(self) -> int:
         """return the number of models"""
         pass
-    
+
+    @staticmethod
+    def check_supports(phi: FNode) -> None:
+        """check if the solver supports the formula phi
+
+        Args:
+            phi (FNode): a pysmt formula
+        Returns:
+            bool: True if the solver supports phi, False otherwise
+        """
+        assert TermIteChecker().walk(phi), "Term-ITE are not supported yet"
+
+
     def enumerate_true(self, phi: FNode, stop_at_unsat: bool = False) -> bool:
         """enumerate all lemmas on the formula phi
 
@@ -94,7 +113,7 @@ class SMTEnumerator(ABC):
                 # should I continue enumerating lemmas?
                 if stop_at_unsat:
                     return UNSAT
-        
+
         # store all lemmas
         self._tlemmas = list(all_lemmas)
 

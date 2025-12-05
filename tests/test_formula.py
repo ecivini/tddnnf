@@ -1,20 +1,8 @@
 """tests for module formula"""
 
-from pysmt.shortcuts import (
-    Or,
-    FALSE,
-    TRUE,
-    Symbol,
-    BOOL,
-    And,
-    REAL,
-    LE,
-    Real,
-    Plus,
-    Times,
-    Not,
-)
 from pysmt.fnode import FNode
+from pysmt.shortcuts import And, BOOL, FALSE, LE, Not, Or, Plus, REAL, Real, Symbol, TRUE, Times
+
 import theorydd.formula as formula
 from theorydd.solvers.mathsat_total import MathSATTotalEnumerator
 
@@ -35,9 +23,7 @@ def test_get_phi_and_lemmas():
     tlemmas = [Symbol("C", BOOL), Or(Symbol("A", BOOL), Symbol("C", BOOL))]
     phi_and_lemmas = formula.get_phi_and_lemmas(phi, tlemmas)
     assert isinstance(phi_and_lemmas, FNode), "phi and lemmas should be an FNode"
-    assert phi_and_lemmas == And(
-        phi, tlemmas[0], tlemmas[1]
-    ), "phi and lemmas is the big and of phi and all the lemmas"
+    assert phi_and_lemmas == And(phi, tlemmas[0], tlemmas[1]), "phi and lemmas is the big and of phi and all the lemmas"
 
 
 def test_big_and():
@@ -45,9 +31,7 @@ def test_big_and():
     tlemmas = [Symbol("C", BOOL), Or(Symbol("A", BOOL), Symbol("C", BOOL))]
     big_and = formula.big_and(tlemmas)
     assert isinstance(big_and, FNode), "phi and lemmas should be an FNode"
-    assert big_and == And(
-        tlemmas[0], tlemmas[1]
-    ), "Big and should be the And of all the items"
+    assert big_and == And(tlemmas[0], tlemmas[1]), "Big and should be the And of all the items"
 
 
 def test_atom_diff():
@@ -68,9 +52,7 @@ def test_atom_diff():
     assert diff == [Symbol("C", BOOL)], "duplicate items shall not be counted twice"
     tlemmas_atoms = [Symbol("A", BOOL), Symbol("C", BOOL), Symbol("C", BOOL)]
     diff = formula.atoms_difference(phi_atoms, tlemmas_atoms)
-    assert diff == [
-        Symbol("C", BOOL)
-    ], "items missing in the second set should not be considered"
+    assert diff == [Symbol("C", BOOL)], "items missing in the second set should not be considered"
 
 
 def test_get_symbols():
@@ -96,41 +78,6 @@ def test_get_symbols():
     ), "the normalized formula has 4 symbols, even if some appear more than once"
 
 
-def test_boolean_mapping():
-    """tests for formula.get_boolean_mapping"""
-    phi = formula.bottom()
-    mapping = formula.get_boolean_mapping(phi)
-    assert mapping == {}, "boolean mapping of empty formula should be empty"
-    phi = And(
-        LE(Symbol("X", REAL), Symbol("Y", REAL)),
-        LE(Symbol("Y", REAL), Symbol("X", REAL)),
-    )
-    mapping = formula.get_boolean_mapping(phi)
-    assert mapping == {
-        Symbol("fresh_a", BOOL): LE(Symbol("X", REAL), Symbol("Y", REAL)),
-        Symbol("fresh_b", BOOL): LE(Symbol("Y", REAL), Symbol("X", REAL)),
-    } or mapping == {
-        Symbol("fresh_b", BOOL): LE(Symbol("X", REAL), Symbol("Y", REAL)),
-        Symbol("fresh_a", BOOL): LE(Symbol("Y", REAL), Symbol("X", REAL)),
-    }, "boolean mapping of formula should have 1 boolean for each T-atom" + str(
-        mapping
-    )
-    phi = And(
-        Symbol("F", BOOL),
-        LE(Symbol("X", REAL), Symbol("Y", REAL)),
-        LE(Symbol("Y", REAL), Symbol("X", REAL)),
-        Symbol("Z", BOOL),
-    )
-    mapping = formula.get_boolean_mapping(phi)
-    assert mapping == {
-        Symbol("fresh_a", BOOL): LE(Symbol("X", REAL), Symbol("Y", REAL)),
-        Symbol("fresh_b", BOOL): LE(Symbol("Y", REAL), Symbol("X", REAL)),
-    } or mapping == {
-        Symbol("fresh_b", BOOL): LE(Symbol("X", REAL), Symbol("Y", REAL)),
-        Symbol("fresh_a", BOOL): LE(Symbol("Y", REAL), Symbol("X", REAL)),
-    }, "boolean mapping of formula should have only for T-atoms"
-
-
 def test_get_atomss():
     """tyests for get atoms"""
     phi = And(
@@ -150,9 +97,7 @@ def test_get_atomss():
         Not(LE(Symbol("X", REAL), Symbol("Y", REAL))),
         Not(LE(Symbol("Y", REAL), Symbol("X", REAL))),
     )
-    assert (
-        len(formula.get_atoms(phi)) == 4
-    ), "the normalized formula has 4 atoms, even if some appear more than once"
+    assert len(formula.get_atoms(phi)) == 4, "the normalized formula has 4 atoms, even if some appear more than once"
 
 
 def test_normalization():

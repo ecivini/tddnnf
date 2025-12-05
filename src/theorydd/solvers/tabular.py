@@ -56,6 +56,7 @@ class TabularSMTSolver(SMTEnumerator):
             phi (FNode): a pysmt formula
             boolean_mapping (Dict[FNode, FNode]) [None]: unused, for compatibility with SMTSolver
         """
+        self.check_supports(phi)
         # there may be some previously saved t-lemmas from a crashed run
         _clear_tlemmas()
 

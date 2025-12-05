@@ -1,99 +1,65 @@
 """tests for T-SDDS"""
+
 from copy import deepcopy
 
-from theorydd.tdd.theory_sdd import TheorySDD
-import theorydd.formula as formula
-from theorydd.solvers.mathsat_total import MathSATTotalEnumerator
+from pysmt.shortcuts import LT, REAL, Symbol
+
 from theorydd.solvers.mathsat_partial_extended import MathSATExtendedPartialEnumerator
-from pysmt.shortcuts import Or, LT, REAL, Symbol, And, Not
+from theorydd.tdd.theory_sdd import TheorySDD
 
 
-def test_init_default():
+def test_init_default(sat_formula):
     """tests SDD generation"""
-    phi = Or(
-        LT(Symbol("X", REAL), Symbol("Y", REAL)),
-        LT(Symbol("Y", REAL), Symbol("Zr", REAL)),
-        LT(Symbol("Zr", REAL), Symbol("X", REAL)),
-    )
-    partial = MathSATExtendedPartialEnumerator()
-    partial.check_all_sat(phi, None, store_models=True)
-    models = partial.get_models()
-    tsdd = TheorySDD(phi, "total")
+    solver = MathSATExtendedPartialEnumerator(project_on_theory_atoms=False)
+    solver.check_all_sat(sat_formula, None, store_models=True)
+    models = solver.get_models()
+    print("MODELS:", models)
+    tsdd = TheorySDD(sat_formula, "total")
     assert tsdd.count_nodes() > 1, "TSDD is not only True or False node"
-    assert tsdd.count_models() == len(
-        models
-    ), "TSDD should have the same models found during All-SMT computation"
+    assert tsdd.count_models() == len(models), "TSDD should have the same models found during All-SMT computation"
 
 
-def test_init_with_known_lemmas():
+def test_init_with_known_lemmas(sat_formula):
     """tests SDD generation"""
-    phi = Or(
-        LT(Symbol("X", REAL), Symbol("Y", REAL)),
-        LT(Symbol("Y", REAL), Symbol("Zr", REAL)),
-        LT(Symbol("Zr", REAL), Symbol("X", REAL)),
-    )
-    partial = MathSATExtendedPartialEnumerator()
-    partial.check_all_sat(phi, None, store_models=True)
-    lemmas = partial.get_theory_lemmas()
-    models = partial.get_models()
-    tsdd = TheorySDD(phi, "total", tlemmas=lemmas)
+    solver = MathSATExtendedPartialEnumerator()
+    solver.check_all_sat(sat_formula, None, store_models=True)
+    lemmas = solver.get_theory_lemmas()
+    models = solver.get_models()
+    tsdd = TheorySDD(sat_formula, "total", tlemmas=lemmas)
     assert tsdd.count_nodes() > 1, "TSDD is not only True or False node"
-    assert tsdd.count_models() == len(
-        models
-    ), "TSDD should have the same models found during All-SMT computation"
+    assert tsdd.count_models() == len(models), "TSDD should have the same models found during All-SMT computation"
 
 
-def test_init_updated_computation_logger():
+def test_init_updated_computation_logger(sat_formula):
     """tests SDD generation"""
-    phi = Or(
-        LT(Symbol("X", REAL), Symbol("Y", REAL)),
-        LT(Symbol("Y", REAL), Symbol("Zr", REAL)),
-        LT(Symbol("Zr", REAL), Symbol("X", REAL)),
-    )
-    partial = MathSATExtendedPartialEnumerator()
-    partial.check_all_sat(phi, None, store_models=True)
-    models = partial.get_models()
-    logger = {}
-    logger["hi"] = "hello"
+    solver = MathSATExtendedPartialEnumerator()
+    solver.check_all_sat(sat_formula, None, store_models=True)
+    models = solver.get_models()
+    logger = {"hi": "hello"}
     copy_logger = deepcopy(logger)
-    tsdd = TheorySDD(phi, "total", computation_logger=logger)
+    tsdd = TheorySDD(sat_formula, "total", computation_logger=logger)
     assert tsdd.count_nodes() > 1, "TSDD is not only True or False node"
-    assert tsdd.count_models() == len(
-        models
-    ), "TSDD should have the same models found during All-SMT computation"
+    assert tsdd.count_models() == len(models), "TSDD should have the same models found during All-SMT computation"
     assert logger != copy_logger, "Computation logger should be updated"
-    assert (
-        logger["hi"] == copy_logger["hi"]
-    ), "Old field of Logger should not be touched"
+    assert logger["hi"] == copy_logger["hi"], "Old field of Logger should not be touched"
 
 
-def test_init_unsat_formula():
+def test_init_unsat_formula(unsat_formula):
     """tests SDD generation"""
-    phi = And(
-        LT(Symbol("X", REAL), Symbol("Y", REAL)),
-        LT(Symbol("Y", REAL), Symbol("Zr", REAL)),
-        LT(Symbol("Zr", REAL), Symbol("X", REAL)),
-    )
-    partial = MathSATExtendedPartialEnumerator()
-    partial.check_all_sat(phi, None)
-    tsdd = TheorySDD(phi, "total")
+    solver = MathSATExtendedPartialEnumerator()
+    solver.check_all_sat(unsat_formula, None)
+    tsdd = TheorySDD(unsat_formula, "total")
     assert tsdd.count_nodes() == 1, "TSDD is only False node"
     assert tsdd.count_models() == 0, "TSDD should have no models"
 
 
-def test_init_tautology():
+def test_init_tautology(prop_valid_formula):
     """tests SDD generation"""
-    phi = Or(
-        LT(Symbol("X", REAL), Symbol("Y", REAL)),
-        Not(LT(Symbol("X", REAL), Symbol("Y", REAL))),
-    )
-    partial = MathSATExtendedPartialEnumerator()
-    partial.check_all_sat(phi, None)
-    tsdd = TheorySDD(phi, "total")
-    assert tsdd.count_nodes() == 1, "TSDD is only True node"
-    assert (
-        tsdd.count_models() == 2
-    ), "TSDD should have 2 models (atom True and atom false)"
+    solver = MathSATExtendedPartialEnumerator()
+    solver.check_all_sat(prop_valid_formula, None)
+    tsdd = TheorySDD(prop_valid_formula, "total")
+    assert tsdd.count_nodes() == 1, "TSDD should be only True node"
+    assert tsdd.count_models() == 2, "TSDD should have 2 models (atom True and atom false)"
 
 
 def test_one_variable():
@@ -103,95 +69,11 @@ def test_one_variable():
     assert tsdd.count_nodes() <= 1, "TSDD is only True node"
     assert tsdd.count_models() == 1, "TSDD should have 1 model (atom True)"
 
-def _create_disjunct(model):
-    literals = []
-    for atom, truth in model.items():
-        if truth:
-            literals.append(atom)
-        else:
-            literals.append(Not(atom))
-    return And(*literals)
 
-
-test_phi = [
-    Or(  # SAT
-        LT(Symbol("X", REAL), Symbol("Y", REAL)),
-        LT(Symbol("Y", REAL), Symbol("Zr", REAL)),
-        LT(Symbol("Zr", REAL), Symbol("X", REAL)),
-    ),
-    And(  # UNSAT
-        LT(Symbol("X", REAL), Symbol("Y", REAL)),
-        LT(Symbol("Y", REAL), Symbol("Zr", REAL)),
-        LT(Symbol("Zr", REAL), Symbol("X", REAL)),
-    ),
-    Or(  # VALID
-        LT(Symbol("X", REAL), Symbol("Y", REAL)),
-        Not(LT(Symbol("X", REAL), Symbol("Y", REAL))),
-    ),
-    formula.read_phi("./tests/items/rng.smt"),
-]
-
-
-# @pytest.mark.parametrize("phi", test_phi)
-# def test_init_models_partial(phi):
-#     """tests that models of the T-BDD are also models of phi"""
-#     partial = PartialSMTSolver()
-#     partial.check_all_sat(phi, None)
-#     tlemmas = partial.get_theory_lemmas()
-#     tbdd = TheorySDD(phi, solver=partial, tlemmas=tlemmas)
-#     ddmodels = tbdd.pick_all()
-
-#     # check SMT of not (phi <=> encoding)
-#     # if UNSAT => encoding is correct
-#     phi_iff_encoding = Not(Iff(phi, Or(*[_create_disjunct(m) for m in ddmodels])))
-#     assert not is_sat(phi_iff_encoding), "not phi iff models should be UNSAT"
-
-#     # check all models are also models of phi
-#     for model in ddmodels:
-#         phi_and_model = And(phi, _create_disjunct(model))
-#         assert is_sat(phi_and_model), "Every model should be also a model for phi"
-
-
-# @pytest.mark.parametrize("phi", test_phi)
-# def test_init_models_total(phi):
-#     """tests that models of the T-BDD are also models of phi"""
-#     total = SMTSolver()
-#     total.check_all_sat(phi, None)
-#     tbdd = TheorySDD(phi, solver=total)
-#     ddmodels = tbdd.pick_all()
-
-#     # check SMT of not (phi <=> encoding)
-#     # if UNSAT => encoding is correct
-#     phi_iff_encoding = Not(Iff(phi, Or(*[_create_disjunct(m) for m in ddmodels])))
-#     assert not is_sat(phi_iff_encoding), "not phi iff models should be UNSAT"
-
-#     # check all models are also models of phi
-#     for model in ddmodels:
-#         phi_and_model = And(phi, _create_disjunct(model))
-#         assert is_sat(phi_and_model), "Every model should be also a model for phi"
-
-
-def test_lemma_loading_total():
-    """tests loading data with total solver"""
-    phi = formula.read_phi("./tests/items/rng.smt")
-    total = MathSATTotalEnumerator()
-    tbdd = TheorySDD(phi, solver=total, load_lemmas="./tests/items/rng_lemmas.smt")
-    other_phi = formula.read_phi("./tests/items/rng.smt")
-    other_total = MathSATTotalEnumerator()
-    other_tbdd = TheorySDD(other_phi, solver=other_total)
-    assert (
-        tbdd.count_models() == other_tbdd.count_models()
-    ), "Same modles should come from different loading"
-
-
-def test_lemma_loading_partial():
-    """tests loading data with partial solver"""
-    phi = formula.read_phi("./tests/items/rng.smt")
-    partial = MathSATExtendedPartialEnumerator()
-    tbdd = TheorySDD(phi, solver=partial, load_lemmas="./tests/items/rng_lemmas.smt")
-    other_phi = formula.read_phi("./tests/items/rng.smt")
-    other_partial = MathSATExtendedPartialEnumerator()
-    other_tbdd = TheorySDD(other_phi, solver=other_partial)
-    assert (
-        tbdd.count_models() == other_tbdd.count_models()
-    ), "Same modles should come from different loading"
+def test_lemma_loading(rangen_formula):
+    """tests loading data with a solver"""
+    solver = MathSATExtendedPartialEnumerator()
+    tbdd = TheorySDD(rangen_formula, solver=solver, load_lemmas="./tests/items/rng_lemmas.smt")
+    solver.reset()
+    other_tbdd = TheorySDD(rangen_formula, solver=solver)
+    assert tbdd.count_models() == other_tbdd.count_models(), "Same modles should come from different loading"
