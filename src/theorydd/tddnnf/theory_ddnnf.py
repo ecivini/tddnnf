@@ -16,10 +16,10 @@ import multiprocessing
 
 
 class TheoryDDNNF:
-    
+
     def __init__(
-        self, 
-        phi: FNode, 
+        self,
+        phi: FNode,
         atoms: List[FNode] | None = None,
         solver: SMTEnumerator | None = None,
         base_out_path: str | None = None,
@@ -28,7 +28,7 @@ class TheoryDDNNF:
         sat_result: bool | None = None,
         computation_logger: Dict | None = None,
         store_tlemmas: bool = False,
-        stop_after_allsmt: bool = False
+        stop_after_allsmt: bool = False,
     ) -> None:
         if not hasattr(self, "structure_name"):
             self.structure_name = "T-DDNNF"
@@ -38,16 +38,17 @@ class TheoryDDNNF:
 
         if solver is None:
             solver = MathSATExtendedPartialEnumerator()
-    
+
         if computation_logger is None:
             computation_logger = {}
         if computation_logger.get(self.structure_name) is None:
             computation_logger[self.structure_name] = {}
 
+        # Update solver logger so that each log goes under the T-DDNNF field
+        solver._computation_logger = computation_logger[self.structure_name]
+
         # NORMALIZE PHI
-        self.phi = self._normalize_input(
-            phi, solver, computation_logger[self.structure_name]
-        )
+        self.phi = self._normalize_input(phi, solver, computation_logger[self.structure_name])
 
         # LOAD LEMMAS
         tlemmas, sat_result = self._load_lemmas(
@@ -84,7 +85,7 @@ class TheoryDDNNF:
                 tlemmas=self.tlemmas,
                 back_to_fnode=True,
                 computation_logger=computation_logger[self.structure_name],
-                save_path=base_out_path
+                save_path=base_out_path,
             )
             computation_logger[self.structure_name]["DD nodes"] = nodes
             computation_logger[self.structure_name]["DD edges"] = edges
@@ -94,12 +95,9 @@ class TheoryDDNNF:
                 tddnf_out_path = os.path.join(base_out_path, "tddnnf.smt2")
                 write_smtlib(self.phi_ddnnf, tddnf_out_path)
 
-
     # Taken From theory_dd.py
     # TODO: Is there the need to create an abstract TDDNNF class containing these methods?
-    def _normalize_input(
-        self, phi: FNode, solver: SMTEnumerator, computation_logger: Dict
-    ) -> FNode:
+    def _normalize_input(self, phi: FNode, solver: SMTEnumerator, computation_logger: Dict) -> FNode:
         """normalizes the input"""
         start_time = time.time()
         self.logger.info("Normalizing phi according to solver...")
@@ -148,7 +146,7 @@ class TheoryDDNNF:
         self.logger.info("Lemmas loaded in %s seconds", str(elapsed_time))
         computation_logger["lemmas loading time"] = elapsed_time
         return tlemmas, sat_result
-    
+
     # # Taken From theory_bdd.py
     # # TODO: Is there the need to create an abstract TDDNNF class containing these methods?
     # def _compute_mapping(
