@@ -41,12 +41,16 @@ class MathSATPartialEnumerator(SMTEnumerator):
         self._tlemmas = []
         self._models = []
         self._converter = self.solver.converter
-        self._atoms = []
+        self.atoms = []
 
     def check_all_sat(
-        self, phi: FNode, boolean_mapping: Dict[FNode, FNode] | None = None,
-        parallel_procs: int = 1, computation_logger: Dict | None = None,
-        atoms: List[FNode] | None = None, store_models: bool = False
+        self,
+        phi: FNode,
+        boolean_mapping: Dict[FNode, FNode] | None = None,
+        parallel_procs: int = 1,
+        computation_logger: Dict | None = None,
+        atoms: List[FNode] | None = None,
+        store_models: bool = False,
     ) -> bool:
         """Computes All-SMT for the SMT-formula phi generating partial assignments and using Tsetsin CNF-ization
 
@@ -61,29 +65,22 @@ class MathSATPartialEnumerator(SMTEnumerator):
         self._last_phi = phi
         self._tlemmas = []
         self._models = []
-        self._atoms = self.get_theory_atoms(phi) if not atoms else atoms
+        self.atoms = self.get_theory_atoms(phi) if not atoms else atoms
 
         self.solver.reset_assertions()
-        phi_tsetsin = PolarityCNFizer(
-            nnf=True, mutex_nnf_labels=True
-        ).convert_as_formula(phi)
+        phi_tsetsin = PolarityCNFizer(nnf=True, mutex_nnf_labels=True).convert_as_formula(phi)
         self.solver.add_assertion(phi_tsetsin)
 
         self._models = []
         mathsat.msat_all_sat(
             self.solver.msat_env(),
-            self.get_converted_atoms(self._atoms),
+            self.get_converted_atoms(self.atoms),
             # self.get_converted_atoms(
             #    list(boolean_mapping.keys())),
-            callback=lambda model: _allsat_callback(
-                model, self._converter, self._models
-            ),
+            callback=lambda model: _allsat_callback(model, self._converter, self._models),
         )
 
-        self._tlemmas = [
-            self._converter.back(l)
-            for l in mathsat.msat_get_theory_lemmas(self.solver.msat_env())
-        ]
+        self._tlemmas = [self._converter.back(l) for l in mathsat.msat_get_theory_lemmas(self.solver.msat_env())]
 
         # phi_plus_lemmas = And(phi, *self._tlemmas)
         # self.solver_total.add_assertion(phi_plus_lemmas)

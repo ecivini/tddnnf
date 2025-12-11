@@ -40,6 +40,7 @@ from theorydd.ddnnf.ddnnf_compiler import DDNNFCompiler
 
 _SelfD4Node = TypeVar("SelfD4Node", bound="D4Node")
 
+
 @dataclass
 class D4Node:
     """a node that results from a d4 compilation process"""
@@ -71,9 +72,7 @@ class D4Node:
         """adds an edge to the node"""
         self.edges[dst] = label
 
-    def to_pysmt(
-        self, mapping: Dict[int, FNode], graph: Dict[int, _SelfD4Node]
-    ) -> FNode:
+    def to_pysmt(self, mapping: Dict[int, FNode], graph: Dict[int, _SelfD4Node]) -> FNode:
         """
         translates the D4Node into a pysmt formula recirsively with memoization
 
@@ -144,15 +143,16 @@ class D4Compiler(DDNNFCompiler):
             bcs12_out_file_path (str) -> the path to the file where the bcs12 output need to be saved
             tlemmas (List[FNode] | None) = None -> a list of theory lemmas to be added to the formula
         """
-        phi_atoms: frozenset = get_atoms(phi)
         if tlemmas is not None:
             phi_and_lemmas = get_phi_and_lemmas(phi, tlemmas)
             phi_and_lemmas = get_normalized(phi_and_lemmas, self.normalizer_solver.get_converter())
         else:
             phi_and_lemmas = phi
 
+        phi_atoms: frozenset = get_atoms(phi_and_lemmas)
+
         if do_not_quantify:
-            fresh_atoms:Set[FNode] = frozenset()
+            fresh_atoms: Set[FNode] = frozenset()
         else:
             fresh_atoms: Set[FNode] = frozenset(phi_atoms)
 
@@ -206,7 +206,6 @@ class D4Compiler(DDNNFCompiler):
             # Final target
             f.write(f"T {root}\n")
 
-
     def from_nnf_to_pysmt(self, nnf_file: str) -> Tuple[FNode, int, int]:
         """
         Translates the formula contained in the file d4_file from nnf format to a pysmt FNode
@@ -231,9 +230,7 @@ class D4Compiler(DDNNFCompiler):
                 total_nodes += 1
                 tokens = line.split(" ")
                 if len(tokens) != 3:
-                    raise ValueError(
-                        "Invalid d4 format: OR node with wrong number of tokens"
-                    )
+                    raise ValueError("Invalid d4 format: OR node with wrong number of tokens")
                 node_id = int(tokens[1])
                 d4_graph[node_id] = D4Node(_D4_OR_NODE)
             elif line.startswith("a"):
@@ -241,9 +238,7 @@ class D4Compiler(DDNNFCompiler):
                 total_nodes += 1
                 tokens = line.split(" ")
                 if len(tokens) != 3:
-                    raise ValueError(
-                        "Invalid d4 format: AND node with wrong number of tokens"
-                    )
+                    raise ValueError("Invalid d4 format: AND node with wrong number of tokens")
                 node_id = int(tokens[1])
                 d4_graph[node_id] = D4Node(_D4_AND_NODE)
             elif line.startswith("f"):
@@ -251,9 +246,7 @@ class D4Compiler(DDNNFCompiler):
                 total_nodes += 1
                 tokens = line.split(" ")
                 if len(tokens) != 3:
-                    raise ValueError(
-                        "Invalid d4 format: FALSE node with wrong number of tokens"
-                    )
+                    raise ValueError("Invalid d4 format: FALSE node with wrong number of tokens")
                 node_id = int(tokens[1])
                 d4_graph[node_id] = D4Node(_D4_FALSE_NODE)
             elif line.startswith("t"):
@@ -261,9 +254,7 @@ class D4Compiler(DDNNFCompiler):
                 total_nodes += 1
                 tokens = line.split(" ")
                 if len(tokens) != 3:
-                    raise ValueError(
-                        "Invalid d4 format: TRUE node with wrong number of tokens"
-                    )
+                    raise ValueError("Invalid d4 format: TRUE node with wrong number of tokens")
                 node_id = int(tokens[1])
                 d4_graph[node_id] = D4Node(_D4_TRUE_NODE)
             elif line[0].isdigit():
@@ -271,9 +262,7 @@ class D4Compiler(DDNNFCompiler):
                 total_arcs += 1
                 tokens = line.split(" ")
                 if len(tokens) < 3:
-                    raise ValueError(
-                        "Invalid d4 format: ARC with insufficient amount of tokens"
-                    )
+                    raise ValueError("Invalid d4 format: ARC with insufficient amount of tokens")
                 src_id = int(tokens[0])  # source node
                 dst_id = int(tokens[1])  # destination node
                 label = list(map(int, tokens[2:]))
@@ -304,12 +293,7 @@ class D4Compiler(DDNNFCompiler):
         lines: List[str] = contents.split("\n")
         lines = list(filter(lambda x: x != "", lines))
         for line in lines:
-            if (
-                line.startswith("f")
-                or line.startswith("o")
-                or line.startswith("t")
-                or line.startswith("a")
-            ):
+            if line.startswith("f") or line.startswith("o") or line.startswith("t") or line.startswith("a"):
                 total_nodes += 1
             elif line[0].isdigit():
                 total_edges += 1
@@ -326,6 +310,7 @@ class D4Compiler(DDNNFCompiler):
         do_not_quantify: bool = False,
         computation_logger: Dict | None = None,
         timeout: int = 3600,
+        projected_atoms: set[FNode] = set(),
     ) -> Tuple[FNode | None, int, int]:
         """
         Compiles an FNode in dDNNF through the d4 compiler
@@ -366,19 +351,16 @@ class D4Compiler(DDNNFCompiler):
         start_time = time.time()
         self.logger.info("Translating to BC-S1.2...")
         phi = get_normalized(phi, self.normalizer_solver.get_converter())
-        phi_atoms = set(phi.get_atoms())
         self.from_pysmt_to_bcs12(
             phi,
-            phi_atoms,
+            projected_atoms,
             f"{tmp_folder}/circuit.bc",
             tlemmas,
             do_not_quantify=do_not_quantify,
         )
         elapsed_time = time.time() - start_time
         computation_logger["BC-S1.2 translation time"] = elapsed_time
-        self.logger.info(
-            "BC-S1.2 translation completed in %s seconds", str(elapsed_time)
-        )
+        self.logger.info("BC-S1.2 translation completed in %s seconds", str(elapsed_time))
 
         # save mapping for refinement
         start_time = time.time()
@@ -386,9 +368,7 @@ class D4Compiler(DDNNFCompiler):
             os.mkdir(f"{tmp_folder}/mapping")
         self.logger.info("Saving refinement...")
         save_refinement(self.refinement, f"{tmp_folder}/mapping/mapping.json")
-        with open(
-            f"{tmp_folder}/mapping/important_labels.json", "w", encoding="utf8"
-        ) as f:
+        with open(f"{tmp_folder}/mapping/important_labels.json", "w", encoding="utf8") as f:
             json.dump(self.important_atoms_labels, f)
         elapsed_time = time.time() - start_time
         self.logger.info("Refinement saved in %s seconds", str(elapsed_time))
@@ -420,17 +400,13 @@ class D4Compiler(DDNNFCompiler):
 
         # return if not back to fnode
         if not back_to_fnode:
-            nodes, edges = self.count_nodes_and_edges_from_nnf(
-                f"{tmp_folder}/compilation_output.nnf"
-            )
+            nodes, edges = self.count_nodes_and_edges_from_nnf(f"{tmp_folder}/compilation_output.nnf")
             return None, nodes, edges
 
         # translate to pysmt
         start_time = time.time()
         self.logger.info("Translating to pysmt...")
-        phi_ddnnf, nodes, edges = self.from_nnf_to_pysmt(
-            f"{tmp_folder}/compilation_output.nnf"
-        )
+        phi_ddnnf, nodes, edges = self.from_nnf_to_pysmt(f"{tmp_folder}/compilation_output.nnf")
         if save_path is None:
             self._clean_tmp_folder(tmp_folder)
         elapsed_time = time.time() - start_time
@@ -496,6 +472,4 @@ if __name__ == "__main__":
 
     d4_compiler = D4Compiler()
 
-    _phi_ddnnf, _a, _b = d4_compiler.compile_dDNNF(
-        test_phi, None, back_to_fnode=False, save_path="tmp"
-    )
+    _phi_ddnnf, _a, _b = d4_compiler.compile_dDNNF(test_phi, None, back_to_fnode=False, save_path="tmp")

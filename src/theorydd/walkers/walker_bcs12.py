@@ -28,7 +28,7 @@ class BCS12Walker(DagWalker):
             self.abstraction[formula] = next_id
 
         return f"v{self.abstraction[formula]}"
-    
+
     def _remove_double_negations(self, gate: str) -> str:
         """removes double negation from a gate name"""
         return gate.replace("--", "")
@@ -38,7 +38,7 @@ class BCS12Walker(DagWalker):
         # pylint: disable=unused-argument
         if None in args:
             raise ValueError("AND node with invalid children")
-        
+
         self.gate_counter += 1
         gate_name = f"g{self.gate_counter}"
         self.gate_lines.append(f"G {gate_name} := A " + " ".join(args))
@@ -49,7 +49,7 @@ class BCS12Walker(DagWalker):
         # pylint: disable=unused-argument
         if None in args:
             raise ValueError("OR node with invalid children")
-        
+
         self.gate_counter += 1
         gate_name = f"g{self.gate_counter}"
         self.gate_lines.append(f"G {gate_name} := O " + " ".join(args))
@@ -71,10 +71,10 @@ class BCS12Walker(DagWalker):
         """translate BOOL const node"""
         # pylint: disable=unused-argument
         value = formula.constant_value()
-        
+
         self.gate_counter += 1
         gate_name = f"g{self.gate_counter}"
-        
+
         if value:
             # BC-S1.2 does not have a specific term for true, so we create
             # a gate that always evaluates to true
@@ -83,7 +83,7 @@ class BCS12Walker(DagWalker):
             # BC-S1.2 does not have a specific term for false, so we create
             # a gate that always evaluates to false
             self.gate_lines.append(f"G {gate_name} := A v1 -v1")
-        
+
         return gate_name
 
     def walk_iff(self, formula, args, **kwargs):
@@ -92,12 +92,12 @@ class BCS12Walker(DagWalker):
         # IFF: a <-> b === (a & b) | (~a & ~b)
         if args[0] is None or args[1] is None:
             return None
-        
+
         # Create: (a & b)
         self.gate_counter += 1
         gate_and1 = f"g{self.gate_counter}"
         self.gate_lines.append(f"G {gate_and1} := A {args[0]} {args[1]}")
-        
+
         # Create: (~a & ~b)
         self.gate_counter += 1
         gate_and2 = f"g{self.gate_counter}"
@@ -105,12 +105,12 @@ class BCS12Walker(DagWalker):
         line = f"G {gate_and2} := A -{args[0]} -{args[1]}"
         line = self._remove_double_negations(line)
         self.gate_lines.append(line)
-        
+
         # Create: (a & b) | (~a & ~b)
         self.gate_counter += 1
         gate_or = f"g{self.gate_counter}"
         self.gate_lines.append(f"G {gate_or} := O {gate_and1} {gate_and2}")
-        
+
         return gate_or
 
     def walk_implies(self, formula, args, **kwargs):
@@ -119,14 +119,14 @@ class BCS12Walker(DagWalker):
         # IMPLIES: a -> b === (~a | b)
         if args[0] is None or args[1] is None:
             return None
-        
+
         self.gate_counter += 1
         gate_name = f"g{self.gate_counter}"
-        
+
         line = f"G {gate_name} := O -{args[0]} {args[1]}"
         line = self._remove_double_negations(line)
         self.gate_lines.append(line)
-        
+
         return gate_name
 
     def walk_ite(self, formula, args, **kwargs):
@@ -135,22 +135,22 @@ class BCS12Walker(DagWalker):
         # ITE: if a then b else c === ((~a) | b) & (a | c)
         if args[0] is None or args[1] is None or args[2] is None:
             return None
-        
+
         # Create: (~a | b)
         self.gate_counter += 1
         gate_or1 = f"g{self.gate_counter}"
         self.gate_lines.append(f"G {gate_or1} := O -{args[0]} {args[1]}")
-        
+
         # Create: (a | c)
         self.gate_counter += 1
         gate_or2 = f"g{self.gate_counter}"
         self.gate_lines.append(f"G {gate_or2} := O {args[0]} {args[2]}")
-        
+
         # Create: ((~a) | b) & (a | c)
         self.gate_counter += 1
         gate_and = f"g{self.gate_counter}"
         self.gate_lines.append(f"G {gate_and} := A {gate_or1} {gate_or2}")
-        
+
         return gate_and
 
     def walk_forall(self, formula, args, **kwargs):
@@ -163,14 +163,7 @@ class BCS12Walker(DagWalker):
         # pylint: disable=unused-argument
         raise UnsupportedNodeException("Quantifiers are yet to be supported")
 
-    @handles(
-        *op.THEORY_OPERATORS,
-        *op.BV_RELATIONS,
-        *op.IRA_RELATIONS,
-        *op.STR_RELATIONS,
-        op.EQUALS,
-        op.FUNCTION
-    )
+    @handles(*op.THEORY_OPERATORS, *op.BV_RELATIONS, *op.IRA_RELATIONS, *op.STR_RELATIONS, op.EQUALS, op.FUNCTION)
     def walk_theory(self, formula, args, **kwargs):
         """translate theory node"""
         # pylint: disable=unused-argument

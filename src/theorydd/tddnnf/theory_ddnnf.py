@@ -77,6 +77,9 @@ class TheoryDDNNF:
         if stop_after_allsmt:
             return
 
+        if not atoms:
+            atoms = solver.atoms
+
         # Compile to d-DNNF
         if sat_result == SAT:
             d4 = D4Compiler()
@@ -86,6 +89,7 @@ class TheoryDDNNF:
                 back_to_fnode=True,
                 computation_logger=computation_logger[self.structure_name],
                 save_path=base_out_path,
+                projected_atoms=atoms,
             )
             computation_logger[self.structure_name]["DD nodes"] = nodes
             computation_logger[self.structure_name]["DD edges"] = edges

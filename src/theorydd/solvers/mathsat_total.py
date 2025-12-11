@@ -30,19 +30,14 @@ class MathSATTotalEnumerator(SMTEnumerator):
         self._models = []
         self._models_count = 0
 
-    def check_all_sat(
-            self,
-            phi: FNode,
-            atoms: List[FNode] | None = None,
-            store_models: bool = False
-    ) -> bool:
+    def check_all_sat(self, phi: FNode, atoms: List[FNode] | None = None, store_models: bool = False) -> bool:
         self.check_supports(phi)
         self.reset()
 
         atoms = phi.get_atoms() if atoms is None else atoms
         if self._project_on_theory_atoms:
             atoms = get_theory_atoms(atoms)
-
+        self.atoms = atoms
 
         self._solver.add_assertion(phi)
 
@@ -50,12 +45,7 @@ class MathSATTotalEnumerator(SMTEnumerator):
             mathsat.msat_all_sat(
                 self._solver.msat_env(),
                 self.get_converted_atoms(atoms),
-                callback=lambda model:
-                _allsat_callback_store(
-                    model,
-                    self._converter,
-                    self._models
-                )
+                callback=lambda model: _allsat_callback_store(model, self._converter, self._models),
             )
             self._models_count = len(self._models)
         else:
@@ -63,17 +53,11 @@ class MathSATTotalEnumerator(SMTEnumerator):
             mathsat.msat_all_sat(
                 self._solver.msat_env(),
                 self.get_converted_atoms(atoms),
-                callback=lambda _:
-                _allsat_callback_count(
-                    models_count_l
-                )
+                callback=lambda _: _allsat_callback_count(models_count_l),
             )
             self._models_count = models_count_l[0]
 
-        self._tlemmas = [
-            self._converter.back(l)
-            for l in mathsat.msat_get_theory_lemmas(self._solver.msat_env())
-        ]
+        self._tlemmas = [self._converter.back(l) for l in mathsat.msat_get_theory_lemmas(self._solver.msat_env())]
 
         if self._models_count == 0:
             return UNSAT

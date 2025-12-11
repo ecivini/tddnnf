@@ -149,6 +149,7 @@ class MathSATExtendedPartialEnumerator(SMTEnumerator):
         atoms = phi.get_atoms() if atoms is None else atoms
         if self._project_on_theory_atoms:
             atoms = get_theory_atoms(atoms)
+        self.atoms = atoms
 
         phi_cnf = PolarityCNFizer(nnf=True, mutex_nnf_labels=True).convert_as_formula(phi)
         self.solver_partial.add_assertion(phi_cnf)
