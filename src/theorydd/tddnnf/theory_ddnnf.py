@@ -135,7 +135,7 @@ class TheoryDDNNF:
             computation_logger["ALL SMT mode"] = "loaded"
         elif load_lemmas is not None:
             computation_logger["ALL SMT mode"] = "loaded"
-            tlemmas = [formula.read_phi(load_lemmas)]
+            tlemmas = [formula.get_normalized(formula.read_phi(load_lemmas), smt_solver.get_converter())]
         else:
             computation_logger["ALL SMT mode"] = "computed"
             sat_result, tlemmas, _ = extract(
