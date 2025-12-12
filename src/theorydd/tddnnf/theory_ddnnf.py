@@ -77,23 +77,15 @@ class TheoryDDNNF:
         if stop_after_allsmt:
             return
 
-        if not atoms:
-            atoms = solver.atoms
-
-        projected_atoms = set()
-        for atom in atoms:
-            projected_atoms.add(formula.get_normalized(atom, solver.get_converter()))
-
         # Compile to d-DNNF
         if sat_result == SAT:
-            d4 = D4Compiler()
+            d4 = D4Compiler(solver=solver)
             self.phi_ddnnf, nodes, edges = d4.compile_dDNNF(
                 phi=self.phi,
                 tlemmas=self.tlemmas,
                 back_to_fnode=True,
                 computation_logger=computation_logger[self.structure_name],
                 save_path=base_out_path,
-                projected_atoms=projected_atoms,
             )
             computation_logger[self.structure_name]["DD nodes"] = nodes
             computation_logger[self.structure_name]["DD edges"] = edges

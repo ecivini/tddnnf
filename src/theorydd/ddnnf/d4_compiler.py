@@ -35,6 +35,7 @@ from theorydd.constants import (
     RE_NNF_EDGE as _RE_NNF_EDGE,
 )
 from theorydd.solvers.mathsat_total import MathSATTotalEnumerator
+from theorydd.solvers.solver import SMTEnumerator
 
 from theorydd.ddnnf.ddnnf_compiler import DDNNFCompiler
 
@@ -120,9 +121,9 @@ class D4Node:
 class D4Compiler(DDNNFCompiler):
     """D4 compiler implementation for the DDNNFCompiler interface"""
 
-    def __init__(self):
+    def __init__(self, solver: SMTEnumerator | None = None):
         self.important_atoms_labels = []
-        self.normalizer_solver = MathSATTotalEnumerator()
+        self.normalizer_solver = solver if solver is not None else MathSATTotalEnumerator()
         super().__init__()
         self.logger = logging.getLogger("d4_ddnnf_compiler")
 
@@ -172,17 +173,21 @@ class D4Compiler(DDNNFCompiler):
         self.important_atoms_labels = important_atoms_labels
 
         # use the BCS12Walker to traverse the formula
-        walker = BCS12Walker(self.abstraction, phi_atoms)
+        walker = BCS12Walker(self.abstraction)
         root = walker.walk(phi_and_lemmas)
 
         # update the mapping after traversal
         self.abstraction = walker.abstraction
-        self.refinement = {v: k for k, v in self.abstraction.items()}
 
         # Compute abstraction of projected vars
         projected_vars_abstraction = set()
         for v in projected_vars:
+            if v not in self.abstraction:
+                self.abstraction[v] = max(self.abstraction.values(), default=0) + 1
             projected_vars_abstraction.add(self.abstraction[v])
+
+        # Update refinement
+        self.refinement = {v: k for k, v in self.abstraction.items()}
 
         # Now write file
         with open(bcs12_out_file_path, "w") as f:
@@ -310,7 +315,6 @@ class D4Compiler(DDNNFCompiler):
         do_not_quantify: bool = False,
         computation_logger: Dict | None = None,
         timeout: int = 3600,
-        projected_atoms: set[FNode] = set(),
     ) -> Tuple[FNode | None, int, int]:
         """
         Compiles an FNode in dDNNF through the d4 compiler
@@ -353,7 +357,7 @@ class D4Compiler(DDNNFCompiler):
         phi = get_normalized(phi, self.normalizer_solver.get_converter())
         self.from_pysmt_to_bcs12(
             phi,
-            projected_atoms,
+            phi.get_atoms(),
             f"{tmp_folder}/circuit.bc",
             tlemmas,
             do_not_quantify=do_not_quantify,
