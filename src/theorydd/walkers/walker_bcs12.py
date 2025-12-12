@@ -41,7 +41,7 @@ class BCS12Walker(DagWalker):
 
         self.gate_counter += 1
         gate_name = f"g{self.gate_counter}"
-        self.gate_lines.append(f"G {gate_name} := A " + " ".join(args))
+        self.gate_lines.append(f"G {gate_name} := A " + " ".join(set(args)))
         return gate_name
 
     def walk_or(self, formula: FNode, args, **kwargs):
@@ -52,7 +52,7 @@ class BCS12Walker(DagWalker):
 
         self.gate_counter += 1
         gate_name = f"g{self.gate_counter}"
-        self.gate_lines.append(f"G {gate_name} := O " + " ".join(args))
+        self.gate_lines.append(f"G {gate_name} := O " + " ".join(set(args)))
         return gate_name
 
     def walk_not(self, formula: FNode, args, **kwargs):
