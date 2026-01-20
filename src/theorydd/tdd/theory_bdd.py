@@ -94,9 +94,7 @@ class TheoryBDD(TheoryDD):
             smt_solver = _get_solver(solver)
         else:
             smt_solver = solver
-        phi = self._normalize_input(
-            phi, smt_solver, computation_logger[self.structure_name]
-        )
+        phi = self._normalize_input(phi, smt_solver, computation_logger[self.structure_name])
 
         # LOAD LEMMAS
         tlemmas, sat_result = self._load_lemmas(
@@ -123,9 +121,7 @@ class TheoryBDD(TheoryDD):
         atoms = get_atoms(phi_and_lemmas)
 
         # CREATING VARIABLE MAPPING
-        self.abstraction = self._compute_mapping(
-            atoms, computation_logger[self.structure_name]
-        )
+        self.abstraction = self._compute_mapping(atoms, computation_logger[self.structure_name])
         self.refinement = {v: k for k, v in self.abstraction.items()}
 
         # PREPARE FOR BUILDING
@@ -135,10 +131,7 @@ class TheoryBDD(TheoryDD):
         if use_ordering is not None:
             # define ordering with the provided ordering after the qvars
             # to make existential quantification more efficient
-            use_ordering = [
-                formula.get_normalized(atom, smt_solver.get_converter())
-                for atom in use_ordering
-            ]
+            use_ordering = [formula.get_normalized(atom, smt_solver.get_converter()) for atom in use_ordering]
             self.ordering = self._complete_ordering(atoms, use_ordering)
         else:
             self.ordering = self._compute_ordering(atoms)
@@ -154,19 +147,13 @@ class TheoryBDD(TheoryDD):
         # build walker
         walker = BDDWalker(self.abstraction, self.bdd)
         elapsed_time = time.time() - start_time
-        self.logger.info(
-            "BDD preparation phase completed in %s seconds", str(elapsed_time)
-        )
+        self.logger.info("BDD preparation phase completed in %s seconds", str(elapsed_time))
         computation_logger[self.structure_name]["DD preparation time"] = elapsed_time
 
         if sat_result is None or sat_result == SAT:
-            self.root = self._build(
-                phi, tlemmas, walker, computation_logger[self.structure_name]
-            )
+            self.root = self._build(phi, tlemmas, walker, computation_logger[self.structure_name])
         else:
-            self.root = self._build_unsat(
-                walker, computation_logger[self.structure_name]
-            )
+            self.root = self._build_unsat(walker, computation_logger[self.structure_name])
 
     def _compute_ordering(self, atoms: List[FNode]) -> List[FNode]:
         """computes the ordering of the variables
@@ -183,9 +170,7 @@ class TheoryBDD(TheoryDD):
                 order.append(atom)
         return order
 
-    def _complete_ordering(
-        self, atoms: List[FNode], use_ordering: List[FNode]
-    ) -> List[FNode]:
+    def _complete_ordering(self, atoms: List[FNode], use_ordering: List[FNode]) -> List[FNode]:
         """completes the ordering provided by the user"""
         remaining_items = set(atoms)
         order = []
@@ -202,9 +187,7 @@ class TheoryBDD(TheoryDD):
             order.append(item)
         return order
 
-    def _compute_mapping(
-        self, atoms: List[FNode], computation_logger: dict
-    ) -> Dict[FNode, str]:
+    def _compute_mapping(self, atoms: List[FNode], computation_logger: dict) -> Dict[FNode, str]:
         """computes the mapping"""
         start_time = time.time()
         self.logger.info("Creating mapping...")
@@ -218,9 +201,7 @@ class TheoryBDD(TheoryDD):
         computation_logger["variable mapping creation time"] = elapsed_time
         return mapping
 
-    def _enumerate_qvars(
-        self, tlemmas_dd: object, mapped_qvars: List[object]
-    ) -> object:
+    def _enumerate_qvars(self, tlemmas_dd: object, mapped_qvars: List[object]) -> object:
         return cudd_bdd.and_exists(tlemmas_dd, self.bdd.true, mapped_qvars)
 
     def __len__(self) -> int:
@@ -238,9 +219,7 @@ class TheoryBDD(TheoryDD):
     def count_models(self) -> int:
         """returns the amount of models in the T-BDD"""
         try:
-            total = self.root.count(
-                nvars=len(self.abstraction.keys()) - len(self.qvars)
-            )
+            total = self.root.count(nvars=len(self.abstraction.keys()) - len(self.qvars))
         except RuntimeError:
             # sometimes CUDD throws a RuntimeError when counting models
             # when it runs out of memory
@@ -285,6 +264,27 @@ class TheoryBDD(TheoryDD):
     def is_sat(self) -> bool:
         """Returns True if the encoded formula is satisfiable"""
         return self.root != self.bdd.false
+
+    def is_sat_with_condition(self, labels: list[str]) -> bool:
+        """
+        Returns True if the conditioned formula is satisfiable.
+        It does not mutate the underlying BDD
+        """
+        conditioned_dd = self.bdd.true
+
+        for label in labels:
+            negated = False
+            condition = label
+            if label.startswith("-"):
+                negated = True
+                condition = label[1:]
+            condition_bdd = self.bdd.add_expr(condition)
+            if negated:
+                condition_bdd = ~condition_bdd
+
+            conditioned_dd = conditioned_dd & condition_bdd
+
+        return (self.root & conditioned_dd) != self.bdd.false
 
     def _get_care_vars(self) -> List[str]:
         dont_care_vars = set([self.abstraction[qvar] for qvar in self.qvars])
@@ -351,9 +351,7 @@ class TheoryBDD(TheoryDD):
         if not os.path.exists(folder_path):
             os.makedirs(folder_path)
         # SAVE MAPPING
-        formula.save_abstraction_function(
-            self.abstraction, f"{folder_path}/abstraction.json"
-        )
+        formula.save_abstraction_function(self.abstraction, f"{folder_path}/abstraction.json")
         # SAVE QVARS
         qvars_indexes = [self.abstraction[qvar] for qvar in self.qvars]
         with open(f"{folder_path}/qvars.qvars", "w", encoding="utf8") as out:
@@ -361,9 +359,7 @@ class TheoryBDD(TheoryDD):
         # SAVE DD
         _cudd_dump(self.root, f"{folder_path}/tbdd_data")
 
-    def _load_from_folder(
-        self, folder_path: str, normalization_solver: SMTEnumerator | None = None
-    ) -> None:
+    def _load_from_folder(self, folder_path: str, normalization_solver: SMTEnumerator | None = None) -> None:
         """Load a T-BDD from a folder
 
         Args:
@@ -371,25 +367,16 @@ class TheoryBDD(TheoryDD):
             normalization_solver (SMTEnumerator | None) [None]: the solver to use for normalization
         """
         if not os.path.exists(folder_path):
-            raise FileNotFoundError(
-                f"Cannot load T-BDD: Folder {folder_path} does not exist, cannot load T-BDD"
-            )
+            raise FileNotFoundError(f"Cannot load T-BDD: Folder {folder_path} does not exist, cannot load T-BDD")
         if not os.path.isfile(f"{folder_path}/abstraction.json"):
-            raise FileNotFoundError(
-                f"Cannot load T-BDD: File {folder_path}/abstraction.json does not exist"
-            )
+            raise FileNotFoundError(f"Cannot load T-BDD: File {folder_path}/abstraction.json does not exist")
         if not os.path.isfile(f"{folder_path}/qvars.qvars"):
-            raise FileNotFoundError(
-                f"Cannot load T-BDD: File {folder_path}/qvars.qvars does not exist"
-            )
+            raise FileNotFoundError(f"Cannot load T-BDD: File {folder_path}/qvars.qvars does not exist")
         if normalization_solver is None:
             normalization_solver = _get_solver("total")
-        abstraction = formula.load_abstraction_function(
-            f"{folder_path}/abstraction.json"
-        )
+        abstraction = formula.load_abstraction_function(f"{folder_path}/abstraction.json")
         self.abstraction = {
-            formula.get_normalized(k, normalization_solver.get_converter()): v
-            for k, v in abstraction.items()
+            formula.get_normalized(k, normalization_solver.get_converter()): v for k, v in abstraction.items()
         }
         self.refinement = {v: k for k, v in self.abstraction.items()}
         self.bdd = cudd_bdd.BDD()
@@ -408,6 +395,7 @@ class TheoryBDD(TheoryDD):
         Returns:
             FNode: the pysmt formula equivalent to the T-BDD
         """
+
         # ITE(A, B, C) = => (A & B) | (~A & C)
         def _convert_node(node: cudd_bdd.Function) -> FNode:
             if node == self.bdd.true:
@@ -424,12 +412,11 @@ class TheoryBDD(TheoryDD):
                 And(var_atom, high_formula),
                 And(Not(var_atom), low_formula),
             )
+
         return _convert_node(self.root)
 
 
-def tbdd_load_from_folder(
-    folder_path: str, normalizer_solver: SMTEnumerator | None = None
-) -> TheoryBDD:
+def tbdd_load_from_folder(folder_path: str, normalizer_solver: SMTEnumerator | None = None) -> TheoryBDD:
     """Load a T-BDD from a file
 
     Args:

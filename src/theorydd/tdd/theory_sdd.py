@@ -242,6 +242,10 @@ class TheorySDD(TheoryDD):
         return self.root != self.manager.false()
 
     def is_sat_with_condition(self, labels: list[int]) -> bool:
+        """
+        Returns True if the conditioned formula is satisfiable.
+        It does not mutate the underlying SDD
+        """
         conditioned_dd = self.manager.true()
 
         for label in labels:
