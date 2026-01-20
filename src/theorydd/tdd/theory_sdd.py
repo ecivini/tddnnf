@@ -20,6 +20,7 @@ from theorydd.walkers.walker_sdd import SDDWalker
 from theorydd.util._dd_dump_util import save_sdd_object as _save_sdd_object
 from theorydd.constants import VALID_VTREE, SAT
 from theorydd.util.custom_exceptions import InvalidVTreeException
+from functools import reduce
 
 
 class TheorySDD(TheoryDD):
@@ -246,8 +247,7 @@ class TheorySDD(TheoryDD):
         Returns True if the conditioned formula is satisfiable.
         It does not mutate the underlying SDD
         """
-        conditioned_dd = self.manager.true()
-
+        lits = []
         for label in labels:
             negated = False
             if label < 0:
@@ -257,10 +257,11 @@ class TheorySDD(TheoryDD):
             cond = self.atom_literal_map[key]
             if negated:
                 cond = ~cond
+            lits.append(cond)
 
-            conditioned_dd = conditioned_dd & cond
+        conditioned_dd = reduce(lambda cdd, lit: cdd.condition(lit), lits, self.root)
 
-        return (self.root & conditioned_dd) != self.manager.false()
+        return conditioned_dd != self.manager.false()
 
     def is_valid(self) -> bool:
         """Returns True if the encoded formula is valid"""
