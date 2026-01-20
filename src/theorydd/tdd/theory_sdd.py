@@ -85,10 +85,7 @@ class TheorySDD(TheoryDD):
             return
         if vtree_type not in VALID_VTREE:
             raise InvalidVTreeException(
-                'Invalid V-Tree type "'
-                + str(vtree_type)
-                + '".\n Valid V-Tree types: '
-                + str(VALID_VTREE)
+                'Invalid V-Tree type "' + str(vtree_type) + '".\n Valid V-Tree types: ' + str(VALID_VTREE)
             )
         if computation_logger is None:
             computation_logger = {}
@@ -148,15 +145,11 @@ class TheorySDD(TheoryDD):
         start_time = time.time()
         self.logger.info("Preparing to build T-SDD...")
         self.manager = SddManager.from_vtree(self.vtree)
-        sdd_literals = [
-            self.manager.literal(i) for i in range(1, len(self.abstraction.keys()) + 1)
-        ]
+        sdd_literals = [self.manager.literal(i) for i in range(1, len(self.abstraction.keys()) + 1)]
         self.atom_literal_map = self._get_atom_literal_map(sdd_literals)
         walker = SDDWalker(self.atom_literal_map, self.manager)
         elapsed_time = time.time() - start_time
-        self.logger.info(
-            "SDD preparation phase completed in %s seconds", str(elapsed_time)
-        )
+        self.logger.info("SDD preparation phase completed in %s seconds", str(elapsed_time))
         computation_logger["T-SDD"]["DD preparation time"] = elapsed_time
 
         if sat_result is None or sat_result == SAT:
@@ -172,9 +165,7 @@ class TheorySDD(TheoryDD):
             atom_to_literal_map[self.refinement[i]] = sdd_literals[i - 1]
         return atom_to_literal_map
 
-    def _compute_mapping(
-        self, atoms: List[FNode], computation_logger: dict
-    ) -> Dict[FNode, int]:
+    def _compute_mapping(self, atoms: List[FNode], computation_logger: dict) -> Dict[FNode, int]:
         """computes the mapping"""
         start_time = time.time()
         self.logger.info("Creating mapping...")
@@ -250,6 +241,23 @@ class TheorySDD(TheoryDD):
         """Returns True if the encoded formula is satisfiable"""
         return self.root != self.manager.false()
 
+    def is_sat_with_condition(self, labels: list[int]) -> bool:
+        conditioned_dd = self.manager.true()
+
+        for label in labels:
+            negated = False
+            if label < 0:
+                negated = True
+                label = -label
+            key = self.refinement[label]
+            cond = self.atom_literal_map[key]
+            if negated:
+                cond = ~cond
+
+            conditioned_dd = conditioned_dd & cond
+
+        return (self.root & conditioned_dd) != self.manager.false()
+
     def is_valid(self) -> bool:
         """Returns True if the encoded formula is valid"""
         return self.root == self.manager.true()
@@ -301,13 +309,9 @@ class TheorySDD(TheoryDD):
         # this is not very manageable in
         # the geenral case since some
         # labels may not appear in the SDD
-        if _save_sdd_object(
-            self.root, output_file, self.refinement, "SDD", dump_abstraction
-        ):
+        if _save_sdd_object(self.root, output_file, self.refinement, "SDD", dump_abstraction):
             elapsed_time = time.time() - start_time
-            self.logger.info(
-                "SDD saved as %s in %s seconds", output_file, str(elapsed_time)
-            )
+            self.logger.info("SDD saved as %s in %s seconds", output_file, str(elapsed_time))
         else:
             self.logger.info(
                 "SDD could not be saved: The file format of %s is not supported",
@@ -372,9 +376,7 @@ class TheorySDD(TheoryDD):
         # save vtree
         self.save_vtree_to_folder(folder_path)
         # save mapping
-        formula.save_abstraction_function(
-            self.abstraction, folder_path + "/abstraction.json"
-        )
+        formula.save_abstraction_function(self.abstraction, folder_path + "/abstraction.json")
         # SAVE QVARS
         qvars_indexes = [self.abstraction[qvar] for qvar in self.qvars]
         with open(f"{folder_path}/qvars.qvars", "w", encoding="utf8") as out:
@@ -392,9 +394,7 @@ class TheorySDD(TheoryDD):
             os.makedirs(folder_path)
         self.vtree.save(str.encode(folder_path + "/vtree.vtree"))
 
-    def _load_from_folder(
-        self, folder_path: str, normalization_solver: SMTEnumerator | None = None
-    ) -> None:
+    def _load_from_folder(self, folder_path: str, normalization_solver: SMTEnumerator | None = None) -> None:
         """
         Load an AbstractionSDD from a folder
 
@@ -407,18 +407,14 @@ class TheorySDD(TheoryDD):
         self.vtree = vtree_load_from_folder(folder_path)
         if normalization_solver is None:
             normalization_solver = _get_solver("total")
-        abstraction = formula.load_abstraction_function(
-            folder_path + "/abstraction.json"
-        )
+        abstraction = formula.load_abstraction_function(folder_path + "/abstraction.json")
         self.abstraction = {
             formula.get_normalized(key, normalization_solver.get_converter()): value
             for key, value in abstraction.items()
         }
         self.manager = SddManager.from_vtree(self.vtree)
         self.refinement = {v: k for k, v in self.abstraction.items()}
-        sdd_literals = [
-            self.manager.literal(i) for i in range(1, len(self.abstraction) + 1)
-        ]
+        sdd_literals = [self.manager.literal(i) for i in range(1, len(self.abstraction) + 1)]
         self.atom_literal_map = self._get_atom_literal_map(sdd_literals)
         self.root = self.manager.read_sdd_file(str.encode(f"{folder_path}/sdd.sdd"))
         with open(f"{folder_path}/qvars.qvars", "r", encoding="utf8") as input_data:
@@ -439,15 +435,11 @@ def vtree_load_from_folder(folder_path: str) -> Vtree:
     if not os.path.exists(folder_path):
         raise FileNotFoundError("Cannot load Vtree: The folder does not exist")
     if not os.path.isfile(folder_path + "/vtree.vtree"):
-        raise FileNotFoundError(
-            "Cannot load Vtree: The file vtree.vtree does not exist in the folder"
-        )
+        raise FileNotFoundError("Cannot load Vtree: The file vtree.vtree does not exist in the folder")
     return Vtree(filename=folder_path + "/vtree.vtree")
 
 
-def tsdd_load_from_folder(
-    folder_path: str, normalizer_solver: SMTEnumerator | None = None
-) -> TheorySDD:
+def tsdd_load_from_folder(folder_path: str, normalizer_solver: SMTEnumerator | None = None) -> TheorySDD:
     """Load a T-SDD from the specified folder
 
     Args:
