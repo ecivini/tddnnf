@@ -70,7 +70,7 @@ class WithPartitioningWrapper(SMTEnumerator):
 
         # Solve each partition separately
         overall_result = True
-        for part_atoms in partitions.values():
+        for part_atoms in sorted(partitions.values(), key=lambda x: len(x)):
             self._base_solver.reset()
             result = self._base_solver.check_all_sat(And(phi, *self._tlemmas), part_atoms, store_models)
             if not result:
