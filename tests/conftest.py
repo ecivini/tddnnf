@@ -6,6 +6,7 @@ from pysmt.typing import ArrayType, BOOL, INT
 from theorydd.formula import read_phi
 from theorydd.solvers.mathsat_partial_extended import MathSATExtendedPartialEnumerator
 from theorydd.solvers.mathsat_total import MathSATTotalEnumerator
+from theorydd.solvers.with_partitioning import WithPartitioningWrapper
 from theorydd.solvers.solver import SMTEnumerator
 
 
@@ -28,6 +29,12 @@ SOLVERS = [
 def solver(request) -> SMTEnumerator:
     _, solver_cls, params = request.param
     return solver_cls(**params)
+
+@pytest.fixture(params=["raw", "partitioned"], ids=["mode:raw", "mode:part"])
+def wsolver(solver, request):
+    if request.param == "raw":
+        return solver
+    return WithPartitioningWrapper(base_solver=solver)
 
 
 @pytest.fixture
