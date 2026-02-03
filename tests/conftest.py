@@ -38,8 +38,8 @@ def wsolver(solver, request):
 
 
 @pytest.fixture
-def solver_info(solver) -> tuple[SMTEnumerator, bool]:
-    return solver, getattr(solver, "_project_on_theory_atoms", False)
+def solver_info(wsolver) -> tuple[SMTEnumerator, bool, bool]:
+    return wsolver, getattr(wsolver, "_project_on_theory_atoms", False), isinstance(wsolver, WithPartitioningWrapper)
 
 
 # ---- Real variables ----
