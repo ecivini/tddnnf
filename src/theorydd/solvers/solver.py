@@ -21,6 +21,11 @@ class SMTEnumerator(ABC):
         self._computation_logger = computation_logger
 
     @abstractmethod
+    def reset(self) -> None:
+        """Resets the internal state of the solver"""
+        pass
+
+    @abstractmethod
     def check_all_sat(
             self,
             phi: FNode,
