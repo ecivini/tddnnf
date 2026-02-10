@@ -438,7 +438,7 @@ def get_fnode_size(phi: FNode) -> int:
     return walker.walk(phi)
 
 def get_theory_atoms(atoms: Collection[FNode]) -> Collection[FNode]:
-    return [atom for atom in atoms if not atom.is_symbol(_BOOL)]
+    return [atom for atom in atoms if not atom.is_symbol(_BOOL) and atom.get_free_variables()]
 
 if __name__ == "__main__":
     phi_test = default_phi()
