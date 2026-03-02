@@ -16,14 +16,12 @@ from pysmt.shortcuts import (
 from pysmt.fnode import FNode
 from allsat_cnf.label_cnfizer import LabelCNFizer
 from theorydd.formula import save_refinement, load_refinement, get_phi_and_lemmas as _get_phi_and_lemmas
-from theorydd.constants import (
-    UNSAT,
-    C2D_COMMAND as _C2D_COMMAND
-)
+from theorydd.constants import UNSAT, C2D_COMMAND as _C2D_COMMAND
 from theorydd.formula import get_normalized
-from theorydd.solvers.mathsat_total import MathSATTotalEnumerator
+from enumerators.solvers.mathsat_total import MathSATTotalEnumerator
 
 from theorydd.ddnnf.ddnnf_compiler import DDNNFCompiler
+
 
 class C2DCompiler(DDNNFCompiler):
     """an object responsible for compiling pysmt formulas in dDNNF format through the c2d compiler"""
@@ -32,15 +30,16 @@ class C2DCompiler(DDNNFCompiler):
         # check if c2d is available and executable
         if not os.path.isfile(_C2D_COMMAND):
             raise FileNotFoundError(
-                "The binary for the c2d compiler is missing. Please run \"theorydd_install --c2d\" to install or install manually.")
+                'The binary for the c2d compiler is missing. Please run "theorydd_install --c2d" to install or install manually.'
+            )
         if not os.access(_C2D_COMMAND, os.X_OK):
             raise PermissionError(
-                "The c2d binary is not executable. Please check the permissions for the file and grant execution rights.")
+                "The c2d binary is not executable. Please check the permissions for the file and grant execution rights."
+            )
 
         super().__init__()
         self.logger = logging.getLogger("c2d_ddnnf_compiler")
         self.normalizing_solver = MathSATTotalEnumerator()
-
 
     def from_smtlib_to_dimacs_file(
         self,
@@ -112,11 +111,9 @@ class C2DCompiler(DDNNFCompiler):
 
     def _save_quantification_file(self, quantification_file: str, fresh_atoms: List[FNode]) -> None:
         with open(quantification_file, "w", encoding="utf8") as quantification_out:
-            quantified_indexes = [str(self.abstraction[atom])
-                                  for atom in fresh_atoms]
+            quantified_indexes = [str(self.abstraction[atom]) for atom in fresh_atoms]
             quantified_indexes_str: str = " ".join(quantified_indexes)
-            quantification_out.write(
-                f"{len(quantified_indexes)} {quantified_indexes_str}")
+            quantification_out.write(f"{len(quantified_indexes)} {quantified_indexes_str}")
 
     def from_nnf_to_pysmt(self, nnf_file: str) -> Tuple[FNode, int, int]:
         """
@@ -279,7 +276,7 @@ class C2DCompiler(DDNNFCompiler):
             sat_result=sat_result,
             quantify_tseitsin=quantify_tseitsin,
             do_not_quantify=do_not_quantify,
-            quantification_file=f"{tmp_folder}/quantification.exist"
+            quantification_file=f"{tmp_folder}/quantification.exist",
         )
         elapsed_time = time.time() - start_time
         computation_logger["DIMACS translation time"] = elapsed_time
@@ -316,15 +313,13 @@ class C2DCompiler(DDNNFCompiler):
 
         # return if not back to fnode
         if not back_to_fnode:
-            nodes, edges = self.count_nodes_and_edges_from_nnf(
-                f"{tmp_folder}/dimacs.cnf.nnf")
+            nodes, edges = self.count_nodes_and_edges_from_nnf(f"{tmp_folder}/dimacs.cnf.nnf")
             return None, nodes, edges
 
         # translate to pysmt
         start_time = time.time()
         self.logger.info("Translating to pysmt...")
-        result, nodes, edges = self.from_nnf_to_pysmt(
-            f"{tmp_folder}/dimacs.cnf.nnf")
+        result, nodes, edges = self.from_nnf_to_pysmt(f"{tmp_folder}/dimacs.cnf.nnf")
         # clean if necessary
         if save_path is None:
             self._clean_tmp_folder(tmp_folder)
@@ -338,7 +333,7 @@ class C2DCompiler(DDNNFCompiler):
         Load a dDNNF from file and translate it to pysmt
 
         Args:
-            nnf_path (str) ->       the path to the file containing the dDNNF in 
+            nnf_path (str) ->       the path to the file containing the dDNNF in
                                     NNF format provided by the c2d compiler
             mapping_path (str) ->   the path to the file containing the mapping,
                                     which describes the refinement function
@@ -358,7 +353,6 @@ if __name__ == "__main__":
 
     c2d_compiler = C2DCompiler()
 
-    phi_ddnnf, _a, _b = c2d_compiler.compile_dDNNF(
-        test_phi, back_to_fnode=True)
+    phi_ddnnf, _a, _b = c2d_compiler.compile_dDNNF(test_phi, back_to_fnode=True)
 
     print(phi_ddnnf.serialize())

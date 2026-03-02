@@ -21,8 +21,8 @@ from pysmt.shortcuts import (
 
 import theorydd.formula as formula
 from theorydd.constants import SAT, UNSAT
-from theorydd.solvers.mathsat_partial_extended import MathSATExtendedPartialEnumerator
-from theorydd.solvers.mathsat_total import MathSATTotalEnumerator
+from enumerators.solvers.mathsat_partial_extended import MathSATExtendedPartialEnumerator
+from enumerators.solvers.mathsat_total import MathSATTotalEnumerator
 from theorydd.tddnnf.theory_ddnnf import TheoryDDNNF
 
 
@@ -283,6 +283,7 @@ def test_lemma_loading_from_file():
 
     assert tddnnf.sat_result == SAT
     assert len(tddnnf.tlemmas) >= 1
+
 
 # ==================== Edge Cases Tests ====================
 

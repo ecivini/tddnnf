@@ -4,10 +4,10 @@ from pysmt.shortcuts import REAL, Symbol
 from pysmt.typing import ArrayType, BOOL, INT
 
 from theorydd.formula import read_phi
-from theorydd.solvers.mathsat_partial_extended import MathSATExtendedPartialEnumerator
-from theorydd.solvers.mathsat_total import MathSATTotalEnumerator
-from theorydd.solvers.with_partitioning import WithPartitioningWrapper
-from theorydd.solvers.solver import SMTEnumerator
+from enumerators.solvers.mathsat_partial_extended import MathSATExtendedPartialEnumerator
+from enumerators.solvers.mathsat_total import MathSATTotalEnumerator
+from enumerators.solvers.with_partitioning import WithPartitioningWrapper
+from enumerators.solvers.solver import SMTEnumerator
 
 
 def pytest_runtest_setup():
@@ -29,6 +29,7 @@ SOLVERS = [
 def solver(request) -> SMTEnumerator:
     _, solver_cls, params = request.param
     return solver_cls(**params)
+
 
 @pytest.fixture(params=["raw", "partitioned"], ids=["mode:raw", "mode:part"])
 def wsolver(solver, request):

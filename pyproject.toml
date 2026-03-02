@@ -25,7 +25,8 @@ dependencies = [
     "dd==0.6.0",
     "allsat_cnf @ git+https://github.com/masinag/allsat-cnf@main",
     "GitPython>=3.1.44",
-    "python-dotenv==1.0.1"
+    "python-dotenv==1.0.1",
+    "tlemmas_enumeration @ git+https://github.com/ecivini/tlemmas-enumeration.git@divide-and-conquer-with-projection"
 ]
 
 [project.urls]

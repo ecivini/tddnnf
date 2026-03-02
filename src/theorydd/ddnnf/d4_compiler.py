@@ -34,8 +34,8 @@ from theorydd.constants import (
     D4_FALSE_NODE as _D4_FALSE_NODE,
     RE_NNF_EDGE as _RE_NNF_EDGE,
 )
-from theorydd.solvers.mathsat_total import MathSATTotalEnumerator
-from theorydd.solvers.solver import SMTEnumerator
+from enumerators.solvers.mathsat_total import MathSATTotalEnumerator
+from enumerators.solvers.solver import SMTEnumerator
 
 from theorydd.ddnnf.ddnnf_compiler import DDNNFCompiler
 

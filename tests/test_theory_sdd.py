@@ -4,7 +4,7 @@ from copy import deepcopy
 
 from pysmt.shortcuts import LT, REAL, Symbol
 
-from theorydd.solvers.mathsat_partial_extended import MathSATExtendedPartialEnumerator
+from enumerators.solvers.mathsat_partial_extended import MathSATExtendedPartialEnumerator
 from theorydd.tdd.theory_sdd import TheorySDD
 
 

@@ -5,10 +5,9 @@ from collections.abc import Iterable
 from pysmt.fnode import FNode
 from dd import cudd as cudd_bdd
 from theorydd.constants import VALID_SOLVER
-from theorydd.solvers.solver import SMTEnumerator
-from theorydd.solvers.mathsat_partial import MathSATPartialEnumerator
-from theorydd.solvers.mathsat_total import MathSATTotalEnumerator
-from theorydd.solvers.mathsat_partial_extended import MathSATExtendedPartialEnumerator
+from enumerators.solvers.solver import SMTEnumerator
+from enumerators.solvers.mathsat_total import MathSATTotalEnumerator
+from enumerators.solvers.mathsat_partial_extended import MathSATExtendedPartialEnumerator
 from theorydd.solvers.tabular import TabularSMTSolver
 from theorydd.util.custom_exceptions import InvalidSolverException
 
@@ -46,7 +45,7 @@ def cudd_load(file_name: str, bdd: cudd_bdd.BDD) -> cudd_bdd.Function:
     """
     Modified version of the load function
     from dd.cudd.pyx
-    
+
     Unpickle variable order and load dddmp file.
 
     Loads the variable order,
@@ -75,7 +74,7 @@ def cudd_load(file_name: str, bdd: cudd_bdd.BDD) -> cudd_bdd.Function:
     cfg = bdd.configure(reordering=False)
     u = bdd.load(dddmp_fname)
     bdd.configure(reordering=cfg["reordering"])
-    #print(order)
+    # print(order)
     if isinstance(u, Iterable):
         return u[0], order
     return u, order
@@ -106,8 +105,6 @@ def get_solver(solver_name: str) -> SMTEnumerator:
         raise InvalidSolverException(f"Invalid solver {solver_name}")
     if solver_name == "total":
         return MathSATTotalEnumerator()
-    if solver_name == "partial":
-        return MathSATPartialEnumerator()
     if solver_name == "extended_partial":
         return MathSATExtendedPartialEnumerator()
     if solver_name == "tabular_total":

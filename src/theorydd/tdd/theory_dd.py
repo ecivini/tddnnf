@@ -10,7 +10,7 @@ from pysmt.fnode import FNode
 
 from theorydd import formula
 from theorydd.solvers.lemma_extractor import extract
-from theorydd.solvers.solver import SMTEnumerator
+from enumerators.solvers.solver import SMTEnumerator
 from theorydd.walkers.walker_bdd import DagWalker as DDWalker
 
 
@@ -30,9 +30,7 @@ class TheoryDD(ABC):
         if not hasattr(self, "logger"):
             self.logger = logging.getLogger("theorydd_tdd")
 
-    def _normalize_input(
-        self, phi: FNode, solver: SMTEnumerator, computation_logger: Dict
-    ) -> FNode:
+    def _normalize_input(self, phi: FNode, solver: SMTEnumerator, computation_logger: Dict) -> FNode:
         """normalizes the input"""
         start_time = time.time()
         self.logger.info("Normalizing phi according to solver...")
@@ -67,11 +65,7 @@ class TheoryDD(ABC):
                 smt_solver,
                 computation_logger=computation_logger,
             )
-        tlemmas = list(
-            map(
-                lambda l: formula.get_normalized(l, smt_solver.get_converter()), tlemmas
-            )
-        )
+        tlemmas = list(map(lambda l: formula.get_normalized(l, smt_solver.get_converter()), tlemmas))
         # BASICALLY PADDING TO AVOID POSSIBLE ISSUES
         while len(tlemmas) < 2:
             tlemmas.append(formula.top())
@@ -88,9 +82,7 @@ class TheoryDD(ABC):
         self.logger.info("Building T-DD for UNSAT formula...")
         root = walker.walk(formula.bottom())
         elapsed_time = time.time() - start_time
-        self.logger.info(
-            "T-DD for UNSAT formula built in %s seconds", str(elapsed_time)
-        )
+        self.logger.info("T-DD for UNSAT formula built in %s seconds", str(elapsed_time))
         computation_logger["UNSAT DD building time"] = elapsed_time
         return root
 
@@ -138,16 +130,12 @@ class TheoryDD(ABC):
         self.logger.info("Joining phi DD and lemmas T-DD...")
         root = phi_bdd & tlemmas_dd
         elapsed_time = time.time() - start_time
-        self.logger.info(
-            "T-DD for phi and t-lemmas joint in %s seconds", str(elapsed_time)
-        )
+        self.logger.info("T-DD for phi and t-lemmas joint in %s seconds", str(elapsed_time))
         computation_logger["DD joining time"] = elapsed_time
         return root
 
     @abstractmethod
-    def _enumerate_qvars(
-        self, tlemmas_dd: object, mapped_qvars: List[object]
-    ) -> object:
+    def _enumerate_qvars(self, tlemmas_dd: object, mapped_qvars: List[object]) -> object:
         """enumerates over the fresh T-atoms"""
         raise NotImplementedError()
 

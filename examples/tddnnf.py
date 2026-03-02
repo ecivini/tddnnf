@@ -2,8 +2,7 @@ import os
 
 from pysmt.shortcuts import read_smtlib
 
-from theorydd.solvers.mathsat_partial_extended import MathSATExtendedPartialEnumerator
-from theorydd.solvers.mathsat_total import MathSATTotalEnumerator
+from enumerators.solvers.mathsat_total import MathSATTotalEnumerator
 from theorydd.tddnnf.theory_ddnnf import TheoryDDNNF
 
 EXAMPLE_CODE = "09"

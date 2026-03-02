@@ -16,7 +16,7 @@ from theorydd import formula
 from theorydd.constants import SAT
 from theorydd.formula import get_atoms
 from theorydd.solvers.lemma_extractor import find_qvars
-from theorydd.solvers.solver import SMTEnumerator
+from enumerators.solvers.solver import SMTEnumerator
 from theorydd.tdd.theory_dd import TheoryDD
 from theorydd.util._dd_dump_util import change_bbd_dot_names as _change_bbd_dot_names
 from theorydd.util._string_generator import SequentialStringGenerator

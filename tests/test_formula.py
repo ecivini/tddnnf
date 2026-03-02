@@ -4,7 +4,7 @@ from pysmt.fnode import FNode
 from pysmt.shortcuts import And, BOOL, FALSE, LE, Not, Or, Plus, REAL, Real, Symbol, TRUE, Times
 
 import theorydd.formula as formula
-from theorydd.solvers.mathsat_total import MathSATTotalEnumerator
+from enumerators.solvers.mathsat_total import MathSATTotalEnumerator
 
 
 def test_bottom():

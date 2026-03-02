@@ -4,7 +4,7 @@ from copy import deepcopy
 
 from pysmt.shortcuts import And, Iff, Not, Or, Solver
 
-from theorydd.solvers.mathsat_partial_extended import MathSATExtendedPartialEnumerator
+from enumerators.solvers.mathsat_partial_extended import MathSATExtendedPartialEnumerator
 from theorydd.tdd.theory_bdd import TheoryBDD
 
 

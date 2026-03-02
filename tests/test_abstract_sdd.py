@@ -3,7 +3,7 @@
 from copy import deepcopy
 
 from theorydd.abstractdd.abstraction_sdd import AbstractionSDD
-from theorydd.solvers.mathsat_total import MathSATTotalEnumerator
+from enumerators.solvers.mathsat_total import MathSATTotalEnumerator
 
 
 def test_init_default(sat_formula):
@@ -31,9 +31,7 @@ def test_init_updated_computation_logger(sat_formula):
         models
     ), "abstr. SDD should have more models then the models found during All-SMT computation"
     assert logger != copy_logger, "Computation logger should be updated"
-    assert (
-        logger["hi"] == copy_logger["hi"]
-    ), "Old field of Logger should not be touched"
+    assert logger["hi"] == copy_logger["hi"], "Old field of Logger should not be touched"
 
 
 def test_init_t_unsat_formula(unsat_formula):
@@ -60,6 +58,4 @@ def test_init_tautology(prop_valid_formula):
     solver.check_all_sat(prop_valid_formula, None)
     asdd = AbstractionSDD(prop_valid_formula, "total")
     assert asdd.count_nodes() == 1, "TSDD is only True node"
-    assert (
-        asdd.count_models() == 2
-    ), "TSDD should have 2 models (atom True and atom false)"
+    assert asdd.count_models() == 2, "TSDD should have 2 models (atom True and atom false)"

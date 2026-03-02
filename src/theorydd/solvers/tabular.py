@@ -17,8 +17,8 @@ from theorydd.constants import (
 )
 
 # only used for normalization
-from theorydd.solvers.mathsat_total import MathSATTotalEnumerator as _Enumerator
-from theorydd.solvers.solver import SMTEnumerator
+from enumerators.solvers.mathsat_total import MathSATTotalEnumerator as _Enumerator
+from enumerators.solvers.solver import SMTEnumerator
 from theorydd.formula import get_normalized, save_phi, read_phi
 
 
@@ -47,9 +47,7 @@ class TabularSMTSolver(SMTEnumerator):
         self._atoms = []
         self._is_partial = is_partial
 
-    def check_all_sat(
-        self, phi: FNode, boolean_mapping: Dict[FNode, FNode] | None = None
-    ) -> bool:
+    def check_all_sat(self, phi: FNode, boolean_mapping: Dict[FNode, FNode] | None = None) -> bool:
         """Computes All-SMT for the SMT-formula phi using partial assignment and Tsetsin CNF-ization
 
         Args:
@@ -121,9 +119,7 @@ class TabularSMTSolver(SMTEnumerator):
             if not self._is_partial:
                 total_models_tokenized = output_data.split("MODEL COUNT")
             else:
-                total_models_tokenized = output_data.split(
-                    "NUMBER OF PARTIAL ASSIGNMENTS"
-                )
+                total_models_tokenized = output_data.split("NUMBER OF PARTIAL ASSIGNMENTS")
             if len(total_models_tokenized) != 2:
                 raise ValueError
             total_models_string = total_models_tokenized[1].strip()
@@ -159,18 +155,20 @@ class TabularSMTSolver(SMTEnumerator):
 
 
 class TabularTotalSMTSolver(TabularSMTSolver):
-    """A wrapper for the tabular the TabularSMTSOlver 
+    """A wrapper for the tabular the TabularSMTSOlver
     that always computyes total enumeration"""
 
     def __init__(self) -> None:
         super().__init__(is_partial=False)
 
+
 class TabularPartialSMTSolver(TabularSMTSolver):
-    """A wrapper for the tabular the TabularSMTSOlver 
+    """A wrapper for the tabular the TabularSMTSOlver
     that always computes partial enumeration"""
 
     def __init__(self) -> None:
         super().__init__(is_partial=True)
+
 
 def _clear_tlemmas():
     for item in os.listdir():

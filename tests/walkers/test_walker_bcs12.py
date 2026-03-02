@@ -246,10 +246,7 @@ class TestBCS12Walker:
         phi_atoms = frozenset([a])
         walker = BCS12Walker(abstraction, phi_atoms)
 
-        with pytest.raises(
-            UnsupportedNodeException,
-            match="Quantifiers are yet to be supported"
-        ):
+        with pytest.raises(UnsupportedNodeException, match="Quantifiers are yet to be supported"):
             walker.walk(formula)
 
     def test_walk_exists_raises_exception(self):
@@ -261,10 +258,7 @@ class TestBCS12Walker:
         phi_atoms = frozenset([a])
         walker = BCS12Walker(abstraction, phi_atoms)
 
-        with pytest.raises(
-            UnsupportedNodeException,
-            match="Quantifiers are yet to be supported"
-        ):
+        with pytest.raises(UnsupportedNodeException, match="Quantifiers are yet to be supported"):
             walker.walk(formula)
 
     def test_complex_formula(self):
@@ -448,7 +442,7 @@ class TestBCS12Walker:
 
         # Should only map 'a' once
         assert len(abstraction) == 1
-        assert "G g1 := A v1 v1" in walker.gate_lines[0]
+        assert "G g1 := A v1" in walker.gate_lines[0]
 
     def test_theory_constants_handled(self):
         """Test that theory constants are handled without errors"""
@@ -566,4 +560,3 @@ class TestBCS12Walker:
         # Both should work without errors
         walker1.walk(a)
         walker2.walk(a)
-

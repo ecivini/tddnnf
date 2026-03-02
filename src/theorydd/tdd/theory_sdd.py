@@ -12,7 +12,7 @@ from pysmt.fnode import FNode
 from pysdd.sdd import SddManager, Vtree, SddNode, WmcManager
 from theorydd import formula
 from theorydd.solvers.lemma_extractor import find_qvars
-from theorydd.solvers.solver import SMTEnumerator
+from enumerators.solvers.solver import SMTEnumerator
 from theorydd.tdd.theory_dd import TheoryDD
 from theorydd.formula import get_atoms
 from theorydd.util._utils import get_solver as _get_solver

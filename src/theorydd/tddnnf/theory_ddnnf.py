@@ -3,16 +3,15 @@ import time
 import logging
 import os
 
-from theorydd.solvers.mathsat_partial_extended import MathSATExtendedPartialEnumerator
+from enumerators.solvers.mathsat_partial_extended import MathSATExtendedPartialEnumerator
 from theorydd.ddnnf.d4_compiler import D4Compiler
 from pysmt.fnode import FNode
 from pysmt.shortcuts import write_smtlib, And
-from theorydd.solvers.solver import SMTEnumerator
+from enumerators.solvers.solver import SMTEnumerator
 from theorydd import formula
 from theorydd.solvers.lemma_extractor import find_qvars, extract
 from theorydd.formula import get_atoms
 from theorydd.constants import SAT
-import multiprocessing
 
 
 class TheoryDDNNF:

@@ -10,8 +10,8 @@ from pysmt.shortcuts import Array, BV, BVSGE, And, Iff, Int, Ite, Or, Real, Solv
 from pysmt.typing import INT
 
 from theorydd.formula import get_normalized
-from theorydd.solvers.mathsat_partial_extended import MathSATExtendedPartialEnumerator
-from theorydd.solvers.mathsat_total import MathSATTotalEnumerator
+from enumerators.solvers.mathsat_partial_extended import MathSATExtendedPartialEnumerator
+from enumerators.solvers.mathsat_total import MathSATTotalEnumerator
 from theorydd.walkers.walker_bool_abstraction import BooleanAbstractionWalker
 from theorydd.walkers.walker_refinement import RefinementWalker
 
