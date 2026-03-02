@@ -21,11 +21,14 @@ def main():
     # BUILD YOUR DD WITH THE CONSTRUCTOR
     bdd = TheoryBDD(
         phi,
-        solver="partial",  # used to compute all-SMT and extract lemmas
+        solver="total",  # used to compute all-SMT and extract lemmas
         computation_logger=logger,
     )
 
     # USE YOUR DD
+    print(bdd.is_sat())
+    print(bdd.is_sat_with_condition(["a", "-a"]))
+    print(bdd.is_sat())
 
     # MODEL COUNTING
     print("Models: ", bdd.count_models())

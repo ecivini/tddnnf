@@ -1,5 +1,6 @@
 from theorydd.tdd.theory_sdd import TheorySDD
 from pysmt.shortcuts import And, Implies, Or, Iff, LT, LE, Real, Symbol, REAL, Plus
+import time
 
 
 def main():
@@ -19,26 +20,26 @@ def main():
     logger = {}
 
     # BUILD YOUR DD WITH THE CONSTRUCTOR
-    bdd = TheorySDD(
+    sdd = TheorySDD(
         phi,
         vtree_type="balanced",
-        solver="partial",  # used to compute all-SMT and extract lemmas
+        solver="total",  # used to compute all-SMT and extract lemmas
         computation_logger=logger,
     )
 
     # USE YOUR DD
 
     # MODEL COUNTING
-    print("Models: ", bdd.count_models())
+    print("Models: ", sdd.count_models())
 
     # SIZE
-    print("Size in nodes: ", bdd.count_nodes())
+    print("Size in nodes: ", sdd.count_nodes())
 
     # DUMP YOUR DD ON A SVG FILE
-    bdd.graphic_dump("theory_sdd_example.svg")
+    # sdd.graphic_dump("theory_sdd_example.svg")
 
     # DUMP THE V-TREE OF YOUR DD ON A SVG FILE
-    bdd.graphic_dump_vtree("theory_sdd_vtree_example.svg")
+    # sdd.graphic_dump_vtree("theory_sdd_vtree_example.svg")
 
     # CHECK YOUR LOGGER
     print(logger)
