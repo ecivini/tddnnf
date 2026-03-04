@@ -6,12 +6,13 @@ import os
 from enumerators.solvers.mathsat_partial_extended import MathSATExtendedPartialEnumerator
 from theorydd.ddnnf.d4_compiler import D4Compiler
 from pysmt.fnode import FNode
-from pysmt.shortcuts import write_smtlib, And
+from pysmt.shortcuts import write_smtlib, And, Not
 from enumerators.solvers.solver import SMTEnumerator
 from theorydd import formula
-from theorydd.solvers.lemma_extractor import find_qvars, extract
-from theorydd.formula import get_atoms
+from theorydd.solvers.lemma_extractor import extract
+
 from theorydd.constants import SAT
+from theorydd.tddnnf.types import TheoryDNNFType
 
 
 class TheoryDDNNF:
@@ -28,6 +29,7 @@ class TheoryDDNNF:
         computation_logger: Dict | None = None,
         store_tlemmas: bool = False,
         stop_after_allsmt: bool = False,
+        tddnnf_type: TheoryDNNFType = TheoryDNNFType.TReduced,
     ) -> None:
         if not hasattr(self, "structure_name"):
             self.structure_name = "T-DDNNF"
@@ -43,6 +45,8 @@ class TheoryDDNNF:
         if computation_logger.get(self.structure_name) is None:
             computation_logger[self.structure_name] = {}
 
+        self.tddnnf_type = tddnnf_type
+
         # Update solver logger so that each log goes under the T-DDNNF field
         solver._computation_logger = computation_logger[self.structure_name]
 
@@ -50,8 +54,12 @@ class TheoryDDNNF:
         self.phi = self._normalize_input(phi, solver, computation_logger[self.structure_name])
 
         # LOAD LEMMAS
+        tlemmas_phi = self.phi
+        if tddnnf_type == TheoryDNNFType.TExtended:
+            tlemmas_phi = Not(tlemmas_phi)
+
         tlemmas, sat_result = self._load_lemmas(
-            self.phi,
+            tlemmas_phi,
             solver,
             atoms,
             tlemmas,
@@ -85,6 +93,7 @@ class TheoryDDNNF:
                 back_to_fnode=True,
                 computation_logger=computation_logger[self.structure_name],
                 save_path=base_out_path,
+                tddnnf_type=tddnnf_type,
             )
             computation_logger[self.structure_name]["DD nodes"] = nodes
             computation_logger[self.structure_name]["DD edges"] = edges

@@ -38,6 +38,8 @@ from enumerators.solvers.mathsat_total import MathSATTotalEnumerator
 from enumerators.solvers.solver import SMTEnumerator
 
 from theorydd.ddnnf.ddnnf_compiler import DDNNFCompiler
+from theorydd.tddnnf.types import TheoryDNNFType
+
 
 _SelfD4Node = TypeVar("SelfD4Node", bound="D4Node")
 
@@ -132,6 +134,7 @@ class D4Compiler(DDNNFCompiler):
         phi: FNode,
         projected_vars: set[FNode],
         bcs12_out_file_path: str,
+        tddnnf_type: TheoryDNNFType,
         tlemmas: List[FNode] | None = None,
         do_not_quantify: bool = False,
     ) -> None:
@@ -145,12 +148,18 @@ class D4Compiler(DDNNFCompiler):
             tlemmas (List[FNode] | None) = None -> a list of theory lemmas to be added to the formula
         """
         if tlemmas is not None:
-            phi_and_lemmas = get_phi_and_lemmas(phi, tlemmas)
-            phi_and_lemmas = get_normalized(phi_and_lemmas, self.normalizer_solver.get_converter())
-        else:
-            phi_and_lemmas = phi
+            if tddnnf_type == TheoryDNNFType.TReduced:
+                combined_phi = get_phi_and_lemmas(phi, tlemmas)
+            elif tddnnf_type == TheoryDNNFType.TExtended:
+                combined_phi = Or(phi, Not(And(*tlemmas)))
+            else:
+                raise ValueError("Unexpected TheoryDDNNF type.")
 
-        phi_atoms: frozenset = get_atoms(phi_and_lemmas)
+            combined_phi = get_normalized(combined_phi, self.normalizer_solver.get_converter())
+        else:
+            combined_phi = phi
+
+        phi_atoms: frozenset = get_atoms(combined_phi)
 
         if do_not_quantify:
             fresh_atoms: Set[FNode] = frozenset()
@@ -174,7 +183,7 @@ class D4Compiler(DDNNFCompiler):
 
         # use the BCS12Walker to traverse the formula
         walker = BCS12Walker(self.abstraction)
-        root = walker.walk(phi_and_lemmas)
+        root = walker.walk(combined_phi)
 
         # update the mapping after traversal
         self.abstraction = walker.abstraction
@@ -307,6 +316,7 @@ class D4Compiler(DDNNFCompiler):
     def compile_dDNNF(
         self,
         phi: FNode,
+        tddnnf_type: TheoryDNNFType,
         tlemmas: List[FNode] | None = None,
         save_path: str | None = None,
         back_to_fnode: bool = False,
@@ -359,6 +369,7 @@ class D4Compiler(DDNNFCompiler):
             phi,
             phi.get_atoms(),
             f"{tmp_folder}/circuit.bc",
+            tddnnf_type,
             tlemmas,
             do_not_quantify=do_not_quantify,
         )

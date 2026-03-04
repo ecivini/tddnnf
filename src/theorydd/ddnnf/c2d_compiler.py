@@ -21,6 +21,7 @@ from theorydd.formula import get_normalized
 from enumerators.solvers.mathsat_total import MathSATTotalEnumerator
 
 from theorydd.ddnnf.ddnnf_compiler import DDNNFCompiler
+from theorydd.tddnnf.types import TheoryDNNFType
 
 
 class C2DCompiler(DDNNFCompiler):
@@ -225,6 +226,7 @@ class C2DCompiler(DDNNFCompiler):
     def compile_dDNNF(
         self,
         phi: FNode,
+        tddnnf_type: TheoryDNNFType,
         tlemmas: List[FNode] | None = None,
         save_path: str | None = None,
         back_to_fnode: bool = False,
