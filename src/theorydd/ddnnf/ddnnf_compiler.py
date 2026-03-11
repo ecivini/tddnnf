@@ -8,6 +8,7 @@ from typing import Dict, List, Tuple
 
 from pysmt.fnode import FNode
 from theorydd.formula import save_phi
+from theorydd.tddnnf.types import TheoryDNNFType
 
 
 class DDNNFCompiler(ABC):
@@ -25,6 +26,7 @@ class DDNNFCompiler(ABC):
     def compile_dDNNF(
         self,
         phi: FNode,
+        tddnnf_type: TheoryDNNFType,
         tlemmas: List[FNode] | None = None,
         save_path: str | None = None,
         back_to_fnode: bool = False,
@@ -173,9 +175,7 @@ class DDNNFCompiler(ABC):
     def _choose_tmp_folder(self, save_path: str | None = None) -> str:
         """choose a temporary folder name"""
         if save_path is None:
-            tmp_folder = "tmp_ddnnf_compilation_" + str(
-                random.randint(0, 9223372036854775807)
-            )
+            tmp_folder = "tmp_ddnnf_compilation_" + str(random.randint(0, 9223372036854775807))
         else:
             tmp_folder = save_path
         if tmp_folder.endswith("/"):
