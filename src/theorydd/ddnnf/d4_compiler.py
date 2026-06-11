@@ -16,8 +16,6 @@ from pysmt.shortcuts import (
     Not,
 )
 from pysmt.fnode import FNode
-from pysmt.walkers import DagWalker
-from allsat_cnf.label_cnfizer import LabelCNFizer
 from theorydd.formula import (
     save_refinement,
     load_refinement,
@@ -26,7 +24,6 @@ from theorydd.formula import (
 )
 from theorydd.walkers.walker_bcs12 import BCS12Walker
 from theorydd.constants import (
-    UNSAT,
     D4_COMMAND as _D4_COMMAND,
     D4_AND_NODE as _D4_AND_NODE,
     D4_OR_NODE as _D4_OR_NODE,

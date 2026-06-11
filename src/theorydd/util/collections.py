@@ -1,9 +1,9 @@
 from typing import Callable, Collection, TypeAlias, TypeVar
 
-T = TypeVar('T')
-U = TypeVar('U')
+T = TypeVar("T")
+U = TypeVar("U")
 
-Nested: TypeAlias = T | Collection['Nested[T]']
+Nested: TypeAlias = T | Collection["Nested[T]"]
 
 
 def map_nested(func: Callable[[T], U], data: Nested[T]) -> Nested[U]:

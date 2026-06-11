@@ -28,7 +28,7 @@ class BDDWalker(DagWalker):
 
     def _apply_mapping(self, arg: FNode):
         """applies the mapping when possible, returns None othrwise"""
-        if not self.mapping.get(arg) is None:
+        if self.mapping.get(arg) is not None:
             return self.manager.add_expr(self.mapping[arg])
         return None
 
@@ -107,14 +107,7 @@ class BDDWalker(DagWalker):
         # pylint: disable=unused-argument
         raise UnsupportedNodeException("Quantifiers are yet to be supported")
 
-    @handles(
-        *op.THEORY_OPERATORS,
-        *op.BV_RELATIONS,
-        *op.IRA_RELATIONS,
-        *op.STR_RELATIONS,
-        op.EQUALS,
-        op.FUNCTION
-    )
+    @handles(*op.THEORY_OPERATORS, *op.BV_RELATIONS, *op.IRA_RELATIONS, *op.STR_RELATIONS, op.EQUALS, op.FUNCTION)
     def walk_theory(self, formula, args, **kwargs):
         """translate theory node"""
         # pylint: disable=unused-argument

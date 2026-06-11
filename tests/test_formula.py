@@ -39,9 +39,9 @@ def test_atom_diff():
     phi_atoms = [Symbol("A", BOOL), Symbol("B", BOOL)]
     tlemmas_atoms = [Symbol("A", BOOL), Symbol("B", BOOL), Symbol("C", BOOL)]
     diff = formula.atoms_difference(phi_atoms, tlemmas_atoms)
-    assert diff == [
-        Symbol("C", BOOL)
-    ], "atom difference should show all items in the second list which are not in the first"
+    assert diff == [Symbol("C", BOOL)], (
+        "atom difference should show all items in the second list which are not in the first"
+    )
     tlemmas_atoms = [
         Symbol("A", BOOL),
         Symbol("B", BOOL),
@@ -73,9 +73,9 @@ def test_get_symbols():
         Not(LE(Symbol("X", REAL), Symbol("Y", REAL))),
         Not(LE(Symbol("Y", REAL), Symbol("X", REAL))),
     )
-    assert (
-        len(formula.get_symbols(phi)) == 4
-    ), "the normalized formula has 4 symbols, even if some appear more than once"
+    assert len(formula.get_symbols(phi)) == 4, (
+        "the normalized formula has 4 symbols, even if some appear more than once"
+    )
 
 
 def test_get_atomss():
@@ -113,9 +113,9 @@ def test_normalization():
     )
     normal = formula.get_normalized(phi, converter)
     assert len(formula.get_atoms(normal)) == 4, "the normalized formula has 4 atoms"
-    assert len(formula.get_atoms(normal)) == len(
-        formula.get_atoms(phi)
-    ), "different atoms should be normalized into different atoms"
+    assert len(formula.get_atoms(normal)) == len(formula.get_atoms(phi)), (
+        "different atoms should be normalized into different atoms"
+    )
     # 1st and 3rd LE are actually the same
     phi = And(
         Symbol("F", BOOL),
@@ -126,6 +126,6 @@ def test_normalization():
     )
     normal = formula.get_normalized(phi, converter)
     assert len(formula.get_atoms(normal)) == 4, "the normalized formula has 4 atoms"
-    assert len(formula.get_atoms(normal)) < len(
-        formula.get_atoms(phi)
-    ), "equivalent atoms should be normalized into the same atom"
+    assert len(formula.get_atoms(normal)) < len(formula.get_atoms(phi)), (
+        "equivalent atoms should be normalized into the same atom"
+    )

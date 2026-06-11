@@ -124,17 +124,9 @@ class LDDWalker(DagWalker):
         if c_obj_1.is_const() and c_obj_2.is_const():
             return [ConstraintObject(0, c_obj_1.constr_mult * c_obj_2.constr_mult)]
         if c_obj_1.is_const():
-            return [
-                ConstraintObject(
-                    c_obj_2.constr_index, c_obj_1.constr_mult * c_obj_2.constr_mult
-                )
-            ]
+            return [ConstraintObject(c_obj_2.constr_index, c_obj_1.constr_mult * c_obj_2.constr_mult)]
         if c_obj_2.is_const():
-            return [
-                ConstraintObject(
-                    c_obj_1.constr_index, c_obj_1.constr_mult * c_obj_2.constr_mult
-                )
-            ]
+            return [ConstraintObject(c_obj_1.constr_index, c_obj_1.constr_mult * c_obj_2.constr_mult)]
         raise UnsupportedNodeException("Variable Multiplication: " + str(formula))
 
     @handles(op.MINUS)
@@ -150,9 +142,7 @@ class LDDWalker(DagWalker):
             if right_c_obj.constr_index != left_c_obj.constr_index:
                 return [
                     left_c_obj,
-                    ConstraintObject(
-                        right_c_obj.constr_index, -right_c_obj.constr_mult
-                    ),
+                    ConstraintObject(right_c_obj.constr_index, -right_c_obj.constr_mult),
                 ]
             else:
                 return [
@@ -187,23 +177,15 @@ class LDDWalker(DagWalker):
         # LEFT PART OF THE INEQ
         for c_obj in left_c_objs:
             if c_obj.is_const():
-                const_c_obj = ConstraintObject(
-                    0, const_c_obj.constr_mult - c_obj.constr_mult
-                )
+                const_c_obj = ConstraintObject(0, const_c_obj.constr_mult - c_obj.constr_mult)
             else:
-                var_list[c_obj.constr_index - 1] = (
-                    var_list[c_obj.constr_index - 1] + c_obj.constr_mult
-                )
+                var_list[c_obj.constr_index - 1] = var_list[c_obj.constr_index - 1] + c_obj.constr_mult
         # RIGHT PART OF THE INEQ
         for c_obj in right_c_objs:
             if c_obj.is_const():
-                const_c_obj = ConstraintObject(
-                    0, const_c_obj.constr_mult + c_obj.constr_mult
-                )
+                const_c_obj = ConstraintObject(0, const_c_obj.constr_mult + c_obj.constr_mult)
             else:
-                var_list[c_obj.constr_index - 1] = (
-                    var_list[c_obj.constr_index - 1] - c_obj.constr_mult
-                )
+                var_list[c_obj.constr_index - 1] = var_list[c_obj.constr_index - 1] - c_obj.constr_mult
         # CHECK IF ALL VARIABLES ARE ZERO
         var_list_empty = True
         for item in var_list:
@@ -229,23 +211,15 @@ class LDDWalker(DagWalker):
         # LEFT PART OF THE INEQ
         for c_obj in left_c_objs:
             if c_obj.is_const():
-                const_c_obj = ConstraintObject(
-                    0, const_c_obj.constr_mult - c_obj.constr_mult
-                )
+                const_c_obj = ConstraintObject(0, const_c_obj.constr_mult - c_obj.constr_mult)
             else:
-                var_list[c_obj.constr_index - 1] = (
-                    var_list[c_obj.constr_index - 1] + c_obj.constr_mult
-                )
+                var_list[c_obj.constr_index - 1] = var_list[c_obj.constr_index - 1] + c_obj.constr_mult
         # RIGHT PART OF THE INEQ
         for c_obj in right_c_objs:
             if c_obj.is_const():
-                const_c_obj = ConstraintObject(
-                    0, const_c_obj.constr_mult + c_obj.constr_mult
-                )
+                const_c_obj = ConstraintObject(0, const_c_obj.constr_mult + c_obj.constr_mult)
             else:
-                var_list[c_obj.constr_index - 1] = (
-                    var_list[c_obj.constr_index - 1] - c_obj.constr_mult
-                )
+                var_list[c_obj.constr_index - 1] = var_list[c_obj.constr_index - 1] - c_obj.constr_mult
         # CHECK IF ALL VARIABLES ARE ZERO
         var_list_empty = True
         for item in var_list:
@@ -283,27 +257,17 @@ class LDDWalker(DagWalker):
         # LEFT PART OF THE INEQ
         for c_obj in left_c_objs:
             if c_obj.is_const():
-                const_c_obj = ConstraintObject(
-                    0, const_c_obj.constr_mult - c_obj.constr_mult
-                )
+                const_c_obj = ConstraintObject(0, const_c_obj.constr_mult - c_obj.constr_mult)
             else:
-                var_list[c_obj.constr_index - 1] = (
-                    var_list[c_obj.constr_index - 1] + c_obj.constr_mult
-                )
+                var_list[c_obj.constr_index - 1] = var_list[c_obj.constr_index - 1] + c_obj.constr_mult
         # RIGHT PART OF THE INEQ
         for c_obj in right_c_objs:
             if c_obj.is_const():
-                const_c_obj = ConstraintObject(
-                    0, const_c_obj.constr_mult + c_obj.constr_mult
-                )
+                const_c_obj = ConstraintObject(0, const_c_obj.constr_mult + c_obj.constr_mult)
             else:
-                var_list[c_obj.constr_index - 1] = (
-                    var_list[c_obj.constr_index - 1] - c_obj.constr_mult
-                )
+                var_list[c_obj.constr_index - 1] = var_list[c_obj.constr_index - 1] - c_obj.constr_mult
         res1 = tuple([tuple(var_list), False, const_c_obj.constr_mult])
-        minus_const_c_obj = ConstraintObject(
-            const_c_obj.constr_index, -const_c_obj.constr_mult
-        )
+        minus_const_c_obj = ConstraintObject(const_c_obj.constr_index, -const_c_obj.constr_mult)
         minus_var_list = [-x for x in var_list]
         res2 = tuple([tuple(minus_var_list), False, minus_const_c_obj.constr_mult])
         return self.manager.constraint(res1) & self.manager.constraint(res2)

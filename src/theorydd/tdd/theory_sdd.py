@@ -224,7 +224,7 @@ class TheorySDD(TheoryDD):
                 first = queue.pop(0)
                 if first.is_decision():
                     total_edges += 1
-                    if not first in visited:
+                    if first not in visited:
                         elems = first.elements()
                         for elem in elems:
                             queue.extend([elem[0], elem[1]])

@@ -24,7 +24,7 @@ def extract(
         smt_solver (SMTSolver | PartialSMTSolver): the SMT solver to be used for lemma extraction
         enumerate_true (bool) [False]: if set to True, enumerate all T-lemmas possible
             over the atoms of phi
-        use_boolean_mapping (bool) [False]: optional for SMTEnumerator, if the solver 
+        use_boolean_mapping (bool) [False]: optional for SMTEnumerator, if the solver
             supports enumerating thorugh a boolean mapping
         computation_logger (Dict) [None]: a dictionary that will be updated to store computation info
 
@@ -59,9 +59,7 @@ def extract(
     return SAT, lemmas, boolean_mapping
 
 
-def find_qvars(
-    original_phi: FNode, phi_and_lemmas: FNode, computation_logger: Dict = None
-):
+def find_qvars(original_phi: FNode, phi_and_lemmas: FNode, computation_logger: Dict = None):
     """Finds the atoms on which to existentially quantify when building a T-DD (the fresh T-atoms from T-lemmas)
 
     Args:

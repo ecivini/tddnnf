@@ -166,13 +166,7 @@ class XsddParser(DagWalker):
         # pylint: disable=unused-argument
         return formula.constant_value()
 
-    @handles(
-        *op.BV_OPERATORS,
-        *op.BV_RELATIONS,
-        *op.STR_OPERATORS,
-        *op.STR_RELATIONS,
-        *op.ARRAY_OPERATORS
-    )
+    @handles(*op.BV_OPERATORS, *op.BV_RELATIONS, *op.STR_OPERATORS, *op.STR_RELATIONS, *op.ARRAY_OPERATORS)
     def walk_theory(self, formula, args, **kwargs):
         """translate theory node"""
         # pylint: disable=unused-argument

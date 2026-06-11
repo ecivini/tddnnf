@@ -77,15 +77,11 @@ class AbstractionSDD(TheorySDD):
         # save vtree
         self.save_vtree_to_folder(folder_path)
         # save mapping
-        formula.save_abstraction_function(
-            self.abstraction, folder_path + "/abstraction.json"
-        )
+        formula.save_abstraction_function(self.abstraction, folder_path + "/abstraction.json")
         # save sdd
         self.root.save(str.encode(folder_path + "/sdd.sdd"))
 
-    def _load_from_folder(
-        self, folder_path: str, normalization_solver: SMTEnumerator | str = "total"
-    ) -> None:
+    def _load_from_folder(self, folder_path: str, normalization_solver: SMTEnumerator | str = "total") -> None:
         """
         Load an AbstractionSDD from a folder
 
@@ -94,17 +90,11 @@ class AbstractionSDD(TheorySDD):
             normalization_solver (SMTEnumerator | str) ["total"]: the solver used to normalize the T-atoms
         """
         if not os.path.exists(folder_path):
-            raise FileNotFoundError(
-                f"Cannot load Abstraction SDD: Folder {folder_path} does not exist"
-            )
+            raise FileNotFoundError(f"Cannot load Abstraction SDD: Folder {folder_path} does not exist")
         if not os.path.isfile(f"{folder_path}/abstraction.json"):
-            raise FileNotFoundError(
-                f"Cannot load Abstraction SDD: File {folder_path}/abstraction.json does not exist"
-            )
+            raise FileNotFoundError(f"Cannot load Abstraction SDD: File {folder_path}/abstraction.json does not exist")
         if not os.path.isfile(f"{folder_path}/sdd.sdd"):
-            raise FileNotFoundError(
-                f"Cannot load Abstraction SDD: File {folder_path}/sdd.sdd does not exist"
-            )
+            raise FileNotFoundError(f"Cannot load Abstraction SDD: File {folder_path}/sdd.sdd does not exist")
         if isinstance(normalization_solver, str):
             smt_solver = _get_solver(normalization_solver)
         else:
@@ -112,18 +102,11 @@ class AbstractionSDD(TheorySDD):
         self.vtree = _vtree_load_from_folder(folder_path)
         self.manager = SddManager.from_vtree(self.vtree)
         self.root = self.manager.read_sdd_file(str.encode(f"{folder_path}/sdd.sdd"))
-        abstraction = formula.load_abstraction_function(
-            folder_path + "/abstraction.json"
-        )
-        self.abstraction = {
-            formula.get_normalized(k, smt_solver.get_converter()): v
-            for k, v in abstraction.items()
-        }
+        abstraction = formula.load_abstraction_function(folder_path + "/abstraction.json")
+        self.abstraction = {formula.get_normalized(k, smt_solver.get_converter()): v for k, v in abstraction.items()}
         self.refinement = {v: k for k, v in self.abstraction.items()}
         self.qvars = []
-        sdd_literals = [
-            self.manager.literal(i) for i in range(1, len(self.abstraction) + 1)
-        ]
+        sdd_literals = [self.manager.literal(i) for i in range(1, len(self.abstraction) + 1)]
         self.atom_literal_map = self._get_atom_literal_map(sdd_literals)
 
 

@@ -102,7 +102,7 @@ def setup_d4(install_path: str) -> None:
     clone_repo(D4_REPO, repo_path, D4_BRANCH)
     os.chdir(repo_path)
 
-    # manually install libpatoh.a 
+    # manually install libpatoh.a
     # tracking issue: https://github.com/crillab/d4v2/issues/1
     libpatoh_install_path = os.path.join(repo_path, "3rdParty", "patoh")
     setup_libpatoh(repo_path, libpatoh_install_path)
@@ -147,7 +147,7 @@ def setup_libpatoh(download_path: str, install_path: str) -> None:
     result = os.system(f"tar -xvzf {libpatoh_tar_download_path} -C tmp_libpatoh")
     if result != 0:
         raise InstallException("Failed to unzip libpatoh")
-    
+
     # copy libpatoh files into d4 repo
     os.system(f"cp {libpatoh_lib_path} {install_path}/libpatoh.a")
 
@@ -195,16 +195,19 @@ def clone_repo(repo_url: str, repo_path: str, branch: str = "main") -> None:
     # clone repo
     Repo.clone_from(repo_url, repo_path, branch=branch)
 
+
 def download_file(url: str, output_path: str) -> None:
     """Downloads a file from a URL to the specified output path"""
     result = os.system(f"curl -L {url} --output {output_path}")
     if result != 0:
         raise InstallException(f"Failed to download file from {url}")
 
+
 def create_binary_folder(binary_path: str) -> None:
     """Creates the binary folder if it doesn't exist"""
     if not os.path.exists(binary_path):
         os.mkdir(binary_path)
+
 
 def run_setup():
     """Run setup"""

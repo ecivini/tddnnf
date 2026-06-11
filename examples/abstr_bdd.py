@@ -22,7 +22,7 @@ def main():
     bdd = AbstractionBDD(
         phi,
         solver="partial",  # only used for normalization
-        computation_logger=logger
+        computation_logger=logger,
     )
 
     # USE YOUR DD

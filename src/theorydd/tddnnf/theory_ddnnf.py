@@ -16,7 +16,6 @@ from theorydd.tddnnf.types import TheoryDNNFType
 
 
 class TheoryDDNNF:
-
     def __init__(
         self,
         phi: FNode,

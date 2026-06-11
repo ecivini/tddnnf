@@ -84,9 +84,7 @@ def read_phi(filename: str) -> FNode:
         other_phi = _read_smtlib(filename)
         return other_phi
     except Exception as _e:
-        raise FormulaException(
-            "The input formula is not supported by the PYSMT package and cannot be read"
-        ) from _e
+        raise FormulaException("The input formula is not supported by the PYSMT package and cannot be read") from _e
 
 
 def save_phi(phi: FNode, filename: str) -> None:
@@ -199,7 +197,7 @@ def atoms_difference(original: List[FNode], expanded: List[FNode]) -> List[FNode
     """
     result: Set[FNode] = set()
     for atom in expanded:
-        if not atom in original:
+        if atom not in original:
             result.add(atom)
     return list(result)
 
@@ -283,9 +281,7 @@ def load_refinement(mapping_path: str) -> Dict[object, FNode]:
         (Dict[object,FNode]) -> a mapping that associates to objects a pysmt atom
     """
     if not os.path.exists(mapping_path):
-        raise FileNotFoundError(
-            f"The path {mapping_path} does not exist. Please create it before loading the mapping."
-        )
+        raise FileNotFoundError(f"The path {mapping_path} does not exist. Please create it before loading the mapping.")
 
     mapping: Dict[object, FNode] = {}
     with open(mapping_path, "r", encoding="utf8") as input_data:
@@ -311,9 +307,7 @@ def load_abstraction_function(mapping_path: str) -> Dict[FNode, object]:
         (Dict[FNode,object]) -> a mapping that associates to each pysmt atom an object
     """
     if not os.path.exists(mapping_path):
-        raise FileNotFoundError(
-            f"The path {mapping_path} does not exist. Please create it before loading the mapping."
-        )
+        raise FileNotFoundError(f"The path {mapping_path} does not exist. Please create it before loading the mapping.")
 
     mapping: Dict[FNode, object] = {}
     with open(mapping_path, "r", encoding="utf8") as input_data:
@@ -407,6 +401,7 @@ def get_atom_partitioning(phi: FNode) -> List[Set[FNode]]:
 
     return atoms_sets
 
+
 def get_true_given_atoms(atoms: Iterable[FNode]) -> FNode:
     """returns the formula that is True given the atoms
 
@@ -423,8 +418,9 @@ def get_true_given_atoms(atoms: Iterable[FNode]) -> FNode:
         big_and_items.append(_Or(atom, _Not(atom)))
     return _And(*big_and_items)
 
+
 def get_fnode_size(phi: FNode) -> int:
-    """returns the size of the formula, 
+    """returns the size of the formula,
     which is the total amount of nodes
     of the boolean abstraction of the formula
 
@@ -437,8 +433,10 @@ def get_fnode_size(phi: FNode) -> int:
     walker = CountingWalker()
     return walker.walk(phi)
 
+
 def get_theory_atoms(atoms: Collection[FNode]) -> Collection[FNode]:
     return [atom for atom in atoms if not atom.is_symbol(_BOOL)]
+
 
 if __name__ == "__main__":
     phi_test = default_phi()
