@@ -3,7 +3,6 @@
 from copy import deepcopy
 from theorydd.abstractdd.abstraction_bdd import AbstractionBDD
 from enumerators.solvers.mathsat_total import MathSATTotalEnumerator
-from pysmt.shortcuts import Or, LT, REAL, Symbol, And, Not
 
 
 def test_init_default(sat_formula):
@@ -13,9 +12,9 @@ def test_init_default(sat_formula):
     models = partial.get_models()
     abdd = AbstractionBDD(sat_formula, "total")
     assert abdd.count_nodes() > 1, "abstr. BDD is not only True or False node"
-    assert abdd.count_models() > len(
-        models
-    ), "abstr. BDD should have more models then the models found during All-SMT computation"
+    assert abdd.count_models() > len(models), (
+        "abstr. BDD should have more models then the models found during All-SMT computation"
+    )
 
 
 def test_init_updated_computation_logger(sat_formula):
@@ -27,9 +26,9 @@ def test_init_updated_computation_logger(sat_formula):
     copy_logger = deepcopy(logger)
     abdd = AbstractionBDD(sat_formula, "total", computation_logger=logger)
     assert abdd.count_nodes() > 1, "abstr. BDD is not only True or False node"
-    assert abdd.count_models() >= len(
-        models
-    ), "abstr. BDD should have more models then the models found during All-SMT computation"
+    assert abdd.count_models() >= len(models), (
+        "abstr. BDD should have more models then the models found during All-SMT computation"
+    )
     assert logger != copy_logger, "Computation logger should be updated"
     assert logger["hi"] == copy_logger["hi"], "Old field of Logger should not be touched"
 

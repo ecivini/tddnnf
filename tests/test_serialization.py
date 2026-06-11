@@ -6,6 +6,7 @@ import theorydd.formula as formula
 from theorydd.tdd.theory_bdd import TheoryBDD, tbdd_load_from_folder
 from theorydd.tdd.theory_sdd import TheorySDD, tsdd_load_from_folder
 
+
 def test_abstraction_bdd_serialization():
     """tests abstraction BDD serialization"""
     phi = formula.default_phi()
@@ -14,6 +15,7 @@ def test_abstraction_bdd_serialization():
     loaded_dd = abstraction_bdd_load_from_folder("tests/test_data/abstraction_bdd")
     assert len(original_dd) == len(loaded_dd), "Loaded BDD has different number of nodes"
     assert original_dd.count_models() == loaded_dd.count_models(), "Loaded BDD has different number of models"
+
 
 def test_abstraction_sdd_serialization():
     """tests abstraction SDD serialization"""
@@ -25,6 +27,7 @@ def test_abstraction_sdd_serialization():
     assert len(original_dd) == len(loaded_dd), "Loaded SDD has different number of nodes"
     assert original_dd.count_models() == loaded_dd.count_models(), "Loaded SDD has different number of models"
 
+
 def test_theory_bdd_serialization():
     """tests theory BDD serialization"""
     phi = formula.default_phi()
@@ -34,6 +37,7 @@ def test_theory_bdd_serialization():
     loaded_dd = tbdd_load_from_folder("tests/test_data/theory_bdd")
     assert len(original_dd) == len(loaded_dd), "Loaded BDD has different number of nodes"
     assert original_dd.count_models() == loaded_dd.count_models(), "Loaded BDD has different number of models"
+
 
 def test_theory_sdd_serialization():
     """tests theory SDD serialization"""

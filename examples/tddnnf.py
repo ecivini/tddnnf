@@ -1,4 +1,3 @@
-import os
 
 from pysmt.shortcuts import read_smtlib
 

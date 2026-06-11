@@ -23,8 +23,8 @@ class DoubleNegWalker(DagWalker):
         assert len(args) == 1
         args = args[0]
         if args.is_bool_constant():
-            l = args.constant_value()
-            return self.manager.Bool(not l)
+            val = args.constant_value()
+            return self.manager.Bool(not val)
         elif args.is_not():
             return args.arg(0)
 

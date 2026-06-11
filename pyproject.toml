@@ -6,27 +6,26 @@ build-backend = "setuptools.build_meta"
 name = "theorydd"
 version = "0.0.5"
 authors = [
-  { name="Massimo Michelutti", email="massimo.michelutti@studenti.unitn.it" },
-  { name="Emanuele Civini", email="emanuele.civini@studenti.unitn.it" },
+  { name = "Massimo Michelutti", email = "massimo.michelutti@studenti.unitn.it" },
+  { name = "Emanuele Civini", email = "emanuele.civini@studenti.unitn.it" },
 ]
 description = "Theory Consistent decision diagrams in Python through interfaces with the mathsat SMT-solver and with Cython implementations of Decision Diagrams"
 readme = "README.md"
 requires-python = ">=3.11"
 classifiers = [
-    "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: MIT License",
-    "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
 ]
 dependencies = [
-    "Cython==3.0.8",
-    "pydot==1.4.2",
-    "PySDD==1.0.0",
-    "PySMT==0.9.7.dev333",
-    "dd==0.6.0",
-    "allsat_cnf @ git+https://github.com/masinag/allsat-cnf@main",
-    "GitPython>=3.1.44",
-    "python-dotenv==1.0.1",
-    "tlemmas_enumeration @ git+https://github.com/ecivini/tlemmas-enumeration.git@divide-and-conquer-with-projection"
+  "Cython==3.0.8",
+  "pydot==1.4.2",
+  "PySDD==1.0.0",
+  "PySMT==0.9.7.dev333",
+  "dd==0.6.0",
+  "allsat_cnf @ git+https://github.com/masinag/allsat-cnf@main",
+  "GitPython>=3.1.44",
+  "python-dotenv==1.0.1",
 ]
 
 [project.urls]
@@ -39,10 +38,14 @@ theorydd_install = "theorydd:install_bin.run_setup"
 
 [tool.pytest.ini_options]
 pythonpath = "src"
-addopts = [
-    "--import-mode=importlib",
-]
+addopts = ["--import-mode=importlib"]
 
-# black configuration
-[tool.black]
+# ruff configuration
+[tool.ruff]
 line-length = 120
+
+[tool.uv.sources]
+tlemmas-enumeration = { path = "../tlemmas-enumeration" }
+
+[dependency-groups]
+dev = ["tlemmas-enumeration", "ruff>=0.4.0"]

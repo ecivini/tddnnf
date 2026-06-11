@@ -9,7 +9,7 @@ VALID_VTREE = ["left", "right", "balanced", "vertical", "random"]
 
 VALID_LDD_THEORY = ["TVPI", "TVPIZ", "UTVPIZ", "BOX", "BOXZ"]
 
-VALID_SOLVER = ["partial", "total","extended_partial","tabular_total","tabular_partial"]
+VALID_SOLVER = ["partial", "total", "extended_partial", "tabular_total", "tabular_partial"]
 
 # SAT / UNSAT
 
@@ -34,13 +34,9 @@ VTREE_KEY_START_REGEX = r'[A-Z]+",fontname='
 VTREE_KEY_END_REGEX = r'",fontname='
 VTREE_REPLECE_REGEX = VTREE_KEY_START_REGEX
 
-SDD_LINE_LEFT_REGEX = (
-    r'[\[]label= "<L>(&not;)?([A-Z]+|[0-9]+)[|]<R>(&#8869;|&#8868;)?",'
-)
+SDD_LINE_LEFT_REGEX = r'[\[]label= "<L>(&not;)?([A-Z]+|[0-9]+)[|]<R>(&#8869;|&#8868;)?",'
 SDD_LINE_RIGHT_REGEX = r'[\[]label= "<L>[|]<R>(&not;)?([A-Z]+|[0-9]+)",'
-SDD_LINE_BOTH_REGEX = (
-    r'[\[]label= "<L>(&not;)?([A-Z]+|[0-9]+)[|]<R>(&not;)?([A-Z]+|[0-9]+)",'
-)
+SDD_LINE_BOTH_REGEX = r'[\[]label= "<L>(&not;)?([A-Z]+|[0-9]+)[|]<R>(&not;)?([A-Z]+|[0-9]+)",'
 SDD_KEY_START_LEFT_REGEX = r"([A-Z]+|[0-9]+)[|]"
 SDD_KEY_END_LEFT_REGEX = r"[|]<R>"
 SDD_KEY_START_RIGHT_REGEX = r'([A-Z]+|[0-9]+)",'

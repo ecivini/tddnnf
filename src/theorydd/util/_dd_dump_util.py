@@ -4,7 +4,29 @@ import re
 import pydot
 from pysmt.formula import FNode
 from theorydd.util._utils import get_string_from_atom as _get_string_from_atom
-from theorydd.constants import *
+from theorydd.constants import (
+    BDD_DOT_LINE_REGEX,
+    BDD_DOT_KEY_START_REGEX,
+    BDD_DOT_KEY_END_REGEX,
+    BDD_DOT_REPLACE_REGEX,
+    BDD_LINE_REGEX,
+    BDD_KEY_START_REGEX,
+    BDD_KEY_END_REGEX,
+    BDD_REPLECE_REGEX,
+    VTREE_LINE_REGEX,
+    VTREE_KEY_START_REGEX,
+    VTREE_KEY_END_REGEX,
+    VTREE_REPLECE_REGEX,
+    SDD_LINE_LEFT_REGEX,
+    SDD_LINE_RIGHT_REGEX,
+    SDD_LINE_BOTH_REGEX,
+    SDD_KEY_START_LEFT_REGEX,
+    SDD_KEY_END_LEFT_REGEX,
+    SDD_KEY_START_RIGHT_REGEX,
+    SDD_KEY_END_RIGHT_REGEX,
+    SDD_REPLACE_LEFT_REGEX,
+    SDD_REPLACE_RIGHT_REGEX,
+)
 
 
 def change_bbd_dot_names(output_file, mapping):
@@ -14,16 +36,12 @@ def change_bbd_dot_names(output_file, mapping):
     dot_output = """"""
     for line in dot_lines:
         found = re.search(BDD_DOT_LINE_REGEX, line)
-        if not found is None:
+        if found is not None:
             key_start_location = re.search(BDD_DOT_KEY_START_REGEX, line).start() + 1
             key_end_location = re.search(BDD_DOT_KEY_END_REGEX, line).start()
             line = re.sub(
                 BDD_DOT_REPLACE_REGEX,
-                '[label="'
-                + _get_string_from_atom(
-                    mapping[line[key_start_location:key_end_location]]
-                )
-                + '"]',
+                '[label="' + _get_string_from_atom(mapping[line[key_start_location:key_end_location]]) + '"]',
                 line,
             )
         dot_output += line
@@ -39,16 +57,12 @@ def change_svg_names(output_file, mapping):
     svg_output = """"""
     for line in svg_lines:
         found = re.search(BDD_LINE_REGEX, line)
-        if not found is None:
+        if found is not None:
             key_start_location = re.search(BDD_KEY_START_REGEX, line).start()
             key_end_location = re.search(BDD_KEY_END_REGEX, line).start()
             line = re.sub(
                 BDD_REPLECE_REGEX,
-                ">"
-                + _get_string_from_atom(
-                    mapping[line[key_start_location:key_end_location]]
-                )
-                + "<",
+                ">" + _get_string_from_atom(mapping[line[key_start_location:key_end_location]]) + "<",
                 line,
             )
         svg_output += line
@@ -64,15 +78,12 @@ def translate_vtree_vars(original_dot: str, mapping: dict[str, FNode]) -> str:
     original_dot = original_dot.replace("width=.25", "width=.75")
     for line in original_dot.splitlines():
         found = re.search(VTREE_LINE_REGEX, line)
-        if not found is None:
+        if found is not None:
             key_start_location = re.search(VTREE_KEY_START_REGEX, line).start()
             key_end_location = re.search(VTREE_KEY_END_REGEX, line).start()
             line = re.sub(
                 VTREE_REPLECE_REGEX,
-                _get_string_from_atom(
-                    mapping[line[key_start_location:key_end_location]]
-                )
-                + '",fontname=',
+                _get_string_from_atom(mapping[line[key_start_location:key_end_location]]) + '",fontname=',
                 line,
             )
         result += (
@@ -91,51 +102,39 @@ def translate_sdd_vars(original_dot: str, mapping: dict[str, FNode]) -> str:
         new_line = line
         # ONLY LEFT
         found = re.search(SDD_LINE_LEFT_REGEX, line)
-        if not found is None:
+        if found is not None:
             key_start_location = re.search(SDD_KEY_START_LEFT_REGEX, line).start()
             key_end_location = re.search(SDD_KEY_END_LEFT_REGEX, line).start()
             new_line = re.sub(
                 SDD_REPLACE_LEFT_REGEX,
-                _get_string_from_atom(
-                    mapping[line[key_start_location:key_end_location]]
-                )
-                + "|",
+                _get_string_from_atom(mapping[line[key_start_location:key_end_location]]) + "|",
                 new_line,
             )
         # ONLY RIGHT
         found = re.search(SDD_LINE_RIGHT_REGEX, line)
-        if not found is None:
+        if found is not None:
             key_start_location = re.search(SDD_KEY_START_RIGHT_REGEX, line).start()
             key_end_location = re.search(SDD_KEY_END_RIGHT_REGEX, line).start()
             new_line = re.sub(
                 SDD_REPLACE_RIGHT_REGEX,
-                _get_string_from_atom(
-                    mapping[line[key_start_location:key_end_location]]
-                )
-                + '",',
+                _get_string_from_atom(mapping[line[key_start_location:key_end_location]]) + '",',
                 new_line,
             )
         # BOTH SIDES
         found = re.search(SDD_LINE_BOTH_REGEX, line)
-        if not found is None:
+        if found is not None:
             key_start_location = re.search(SDD_KEY_START_LEFT_REGEX, line).start()
             key_end_location = re.search(SDD_KEY_END_LEFT_REGEX, line).start()
             new_line = re.sub(
                 SDD_REPLACE_LEFT_REGEX,
-                _get_string_from_atom(
-                    mapping[line[key_start_location:key_end_location]]
-                )
-                + "|",
+                _get_string_from_atom(mapping[line[key_start_location:key_end_location]]) + "|",
                 new_line,
             )
             key_start_location = re.search(SDD_KEY_START_RIGHT_REGEX, line).start()
             key_end_location = re.search(SDD_KEY_END_RIGHT_REGEX, line).start()
             new_line = re.sub(
                 SDD_REPLACE_RIGHT_REGEX,
-                _get_string_from_atom(
-                    mapping[line[key_start_location:key_end_location]]
-                )
-                + '",',
+                _get_string_from_atom(mapping[line[key_start_location:key_end_location]]) + '",',
                 new_line,
             )
         result += (

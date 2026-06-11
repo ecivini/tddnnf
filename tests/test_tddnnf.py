@@ -3,7 +3,6 @@
 import os
 import shutil
 import tempfile
-from copy import deepcopy
 
 import pytest
 from pysmt.fnode import FNode
@@ -295,7 +294,7 @@ def test_complex_formula_from_file():
 
     tddnnf = TheoryDDNNF(phi, solver=total)
 
-    assert tddnnf.sat_result == True
+    assert tddnnf.sat_result
     assert len(tddnnf.tlemmas) >= 2
 
 

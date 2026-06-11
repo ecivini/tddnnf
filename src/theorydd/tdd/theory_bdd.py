@@ -166,7 +166,7 @@ class TheoryBDD(TheoryDD):
             appended_values.add(atom)
             order.append(atom)
         for atom in atoms:
-            if not atom in appended_values:
+            if atom not in appended_values:
                 order.append(atom)
         return order
 

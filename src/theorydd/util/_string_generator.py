@@ -1,4 +1,4 @@
-"""this module defines an object that 
+"""this module defines an object that
 sequantially generates strings of letters"""
 
 
@@ -40,9 +40,7 @@ class SequentialStringGenerator:
                     tail_zs_length = len(self._last_string) - j - 1
                     # last_string = last_string until j-th character + next_char(last non z) + a tail of a's
                     self._last_string = (
-                        self._last_string[:j]
-                        + _next_char(self._last_string[j])
-                        + ("a" * tail_zs_length)
+                        self._last_string[:j] + _next_char(self._last_string[j]) + ("a" * tail_zs_length)
                     )
                     return self._last_string
 

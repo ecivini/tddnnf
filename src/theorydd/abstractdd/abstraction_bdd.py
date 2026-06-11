@@ -70,15 +70,11 @@ class AbstractionBDD(TheoryBDD):
         if not os.path.exists(folder_path):
             os.makedirs(folder_path)
         # SAVE MAPPING
-        formula.save_abstraction_function(
-            self.abstraction, f"{folder_path}/abstraction.json"
-        )
+        formula.save_abstraction_function(self.abstraction, f"{folder_path}/abstraction.json")
         # SAVE BDD
         _cudd_dump(self.root, f"{folder_path}/abstraction_bdd_data")
 
-    def _load_from_folder(
-        self, folder_path: str, normalization_solver: SMTEnumerator | str = "total"
-    ) -> None:
+    def _load_from_folder(self, folder_path: str, normalization_solver: SMTEnumerator | str = "total") -> None:
         """Loads an Abstraction BDD from a folder
 
         Args:
@@ -86,30 +82,19 @@ class AbstractionBDD(TheoryBDD):
             normalization_solver (SMTEnumerator | str) ["total"]: the solver used to normalize the T-atoms
         """
         if not os.path.exists(folder_path):
-            raise FileNotFoundError(
-                f"Cannot load Abstraction BDD: Folder {folder_path} does not exist"
-            )
+            raise FileNotFoundError(f"Cannot load Abstraction BDD: Folder {folder_path} does not exist")
         if not os.path.isfile(f"{folder_path}/abstraction.json"):
-            raise FileNotFoundError(
-                f"Cannot load Abstraction BDD: File {folder_path}/abstraction.json does not exist"
-            )
+            raise FileNotFoundError(f"Cannot load Abstraction BDD: File {folder_path}/abstraction.json does not exist")
         if isinstance(normalization_solver, str):
             smt_solver = _get_solver(normalization_solver)
         else:
             smt_solver = normalization_solver
-        abstraction = formula.load_abstraction_function(
-            f"{folder_path}/abstraction.json"
-        )
+        abstraction = formula.load_abstraction_function(f"{folder_path}/abstraction.json")
         # apply normalization to the abstraction
-        self.abstraction = {
-            formula.get_normalized(k, smt_solver.get_converter()): v
-            for k, v in abstraction.items()
-        }
+        self.abstraction = {formula.get_normalized(k, smt_solver.get_converter()): v for k, v in abstraction.items()}
         self.refinement = {v: k for k, v in self.abstraction.items()}
         self.bdd = cudd_bdd.BDD()
-        self.root, ordering_dict = _cudd_load(
-            f"{folder_path}/abstraction_bdd_data", self.bdd
-        )
+        self.root, ordering_dict = _cudd_load(f"{folder_path}/abstraction_bdd_data", self.bdd)
         self.ordering = [0] * len(ordering_dict)
         for k, v in ordering_dict.items():
             self.ordering[v] = self.refinement[k]

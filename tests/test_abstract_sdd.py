@@ -13,9 +13,9 @@ def test_init_default(sat_formula):
     models = solver.get_models()
     asdd = AbstractionSDD(sat_formula, "total")
     assert asdd.count_nodes() > 1, "abstr. SDD is not only True or False node"
-    assert asdd.count_models() > len(
-        models
-    ), "abstr. SDD should have more models then the models found during All-SMT computation"
+    assert asdd.count_models() > len(models), (
+        "abstr. SDD should have more models then the models found during All-SMT computation"
+    )
 
 
 def test_init_updated_computation_logger(sat_formula):
@@ -27,9 +27,9 @@ def test_init_updated_computation_logger(sat_formula):
     copy_logger = deepcopy(logger)
     asdd = AbstractionSDD(sat_formula, "total", computation_logger=logger)
     assert asdd.count_nodes() > 1, "abstr. SDD is not only True or False node"
-    assert asdd.count_models() >= len(
-        models
-    ), "abstr. SDD should have more models then the models found during All-SMT computation"
+    assert asdd.count_models() >= len(models), (
+        "abstr. SDD should have more models then the models found during All-SMT computation"
+    )
     assert logger != copy_logger, "Computation logger should be updated"
     assert logger["hi"] == copy_logger["hi"], "Old field of Logger should not be touched"
 

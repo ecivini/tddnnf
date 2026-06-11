@@ -26,12 +26,7 @@ class SMTEnumerator(ABC):
         pass
 
     @abstractmethod
-    def check_all_sat(
-            self,
-            phi: FNode,
-            atoms: List[FNode] | None = None,
-            store_models: bool = False
-    ) -> bool:
+    def check_all_sat(self, phi: FNode, atoms: List[FNode] | None = None, store_models: bool = False) -> bool:
         """Runs All-SMT on the formula phi and stores t-lemmas
 
         Args:
@@ -74,7 +69,6 @@ class SMTEnumerator(ABC):
             bool: True if the solver supports phi, False otherwise
         """
         assert TermIteChecker().walk(phi), "Term-ITE are not supported yet"
-
 
     def enumerate_true(self, phi: FNode, stop_at_unsat: bool = False) -> bool:
         """enumerate all lemmas on the formula phi
