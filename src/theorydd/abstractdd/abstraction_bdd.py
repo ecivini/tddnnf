@@ -4,10 +4,11 @@ import logging
 import os
 from typing import Dict, List
 from pysmt.fnode import FNode
-from dd import cudd as cudd_bdd
+import dd.cudd as cudd_bdd
+from pysmt.shortcuts import Bool
 from theorydd import formula
 from theorydd.tdd.theory_bdd import TheoryBDD
-from theorydd.solvers.solver import SMTEnumerator
+from enumerators.solvers import SMTEnumerator
 from theorydd.util._utils import (
     cudd_dump as _cudd_dump,
     cudd_load as _cudd_load,
@@ -53,7 +54,7 @@ class AbstractionBDD(TheoryBDD):
         super().__init__(
             phi,
             solver=solver,
-            tlemmas=[formula.top()],
+            tlemmas=[Bool(True)],
             load_lemmas=None,
             sat_result=None,
             use_ordering=use_ordering,

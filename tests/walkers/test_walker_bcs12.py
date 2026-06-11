@@ -24,7 +24,7 @@ from pysmt.shortcuts import (
 )
 
 from theorydd.walkers.walker_bcs12 import BCS12Walker
-from theorydd.util.custom_exceptions import UnsupportedNodeException
+from enumerators.util.custom_exceptions import UnsupportedNodeException
 
 
 # TODO: Rimuovi phi_atoms in quanto non piu in uso

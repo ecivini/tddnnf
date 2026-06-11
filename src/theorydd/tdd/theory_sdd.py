@@ -12,14 +12,14 @@ from pysmt.fnode import FNode
 from pysdd.sdd import SddManager, Vtree, SddNode, WmcManager
 from theorydd import formula
 from theorydd.solvers.lemma_extractor import find_qvars
-from enumerators.solvers.solver import SMTEnumerator
+from enumerators.solvers import SMTEnumerator
 from theorydd.tdd.theory_dd import TheoryDD
 from theorydd.formula import get_atoms
 from theorydd.util._utils import get_solver as _get_solver
 from theorydd.walkers.walker_sdd import SDDWalker
 from theorydd.util._dd_dump_util import save_sdd_object as _save_sdd_object
-from theorydd.constants import VALID_VTREE, SAT
-from theorydd.util.custom_exceptions import InvalidVTreeException
+from theorydd.constants import VALID_VTREE
+from enumerators.util.custom_exceptions import InvalidVTreeException
 from functools import reduce
 
 
@@ -153,7 +153,7 @@ class TheorySDD(TheoryDD):
         self.logger.info("SDD preparation phase completed in %s seconds", str(elapsed_time))
         computation_logger["T-SDD"]["DD preparation time"] = elapsed_time
 
-        if sat_result is None or sat_result == SAT:
+        if sat_result is None or sat_result is True:
             self.root = self._build(phi, tlemmas, walker, computation_logger["T-SDD"])
         else:
             self.root = self._build_unsat(walker, computation_logger["T-SDD"])

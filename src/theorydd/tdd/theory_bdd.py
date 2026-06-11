@@ -8,12 +8,12 @@ from collections.abc import Iterator
 from typing import Dict, List
 
 import pydot
-from dd import cudd as cudd_bdd
+import dd.cudd as cudd_bdd
 from pysmt.fnode import FNode
-from pysmt.shortcuts import And, Not, Or
+from pysmt.shortcuts import And, Bool, Not, Or
 
 from theorydd import formula
-from theorydd.constants import SAT
+
 from theorydd.formula import get_atoms
 from theorydd.solvers.lemma_extractor import find_qvars
 from enumerators.solvers.solver import SMTEnumerator
@@ -150,7 +150,7 @@ class TheoryBDD(TheoryDD):
         self.logger.info("BDD preparation phase completed in %s seconds", str(elapsed_time))
         computation_logger[self.structure_name]["DD preparation time"] = elapsed_time
 
-        if sat_result is None or sat_result == SAT:
+        if sat_result is None or sat_result is True:
             self.root = self._build(phi, tlemmas, walker, computation_logger[self.structure_name])
         else:
             self.root = self._build_unsat(walker, computation_logger[self.structure_name])
@@ -399,9 +399,9 @@ class TheoryBDD(TheoryDD):
         # ITE(A, B, C) = => (A & B) | (~A & C)
         def _convert_node(node: cudd_bdd.Function) -> FNode:
             if node == self.bdd.true:
-                return formula.top()
+                return Bool(True)
             if node == self.bdd.false:
-                return formula.bottom()
+                return Bool(False)
             var_name = node.var
             var_atom = self.refinement[var_name]
             high_node = node.high

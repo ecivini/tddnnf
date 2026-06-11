@@ -4,7 +4,7 @@ from pysmt.walkers import DagWalker, handles
 import pysmt.operators as op
 from pysmt.fnode import FNode
 
-from theorydd.util.custom_exceptions import UnsupportedNodeException
+from enumerators.util.custom_exceptions import UnsupportedNodeException
 
 
 class CountingWalker(DagWalker):

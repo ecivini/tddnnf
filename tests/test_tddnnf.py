@@ -8,6 +8,7 @@ import pytest
 from pysmt.fnode import FNode
 from pysmt.shortcuts import (
     And,
+    Bool,
     Equals,
     LT,
     Not,
@@ -19,8 +20,7 @@ from pysmt.shortcuts import (
 )
 
 import theorydd.formula as formula
-from theorydd.constants import SAT, UNSAT
-from enumerators.solvers.mathsat_partial_extended import MathSATExtendedPartialEnumerator
+from enumerators.solvers import MathSATDivideAndConquerEnumerator
 from enumerators.solvers.mathsat_total import MathSATTotalEnumerator
 from theorydd.tddnnf.theory_ddnnf import TheoryDDNNF
 
@@ -63,17 +63,17 @@ def test_init_with_total_solver(sat_formula):
     total = MathSATTotalEnumerator()
     tddnnf = TheoryDDNNF(sat_formula, solver=total)
 
-    assert tddnnf.sat_result == SAT
+    assert tddnnf.sat_result is True
     assert hasattr(tddnnf, "phi_ddnnf")
     assert isinstance(tddnnf.phi_ddnnf, FNode)
 
 
-def test_init_with_partial_solver(sat_formula):
-    """Test initialization with MathSATExtendedPartialEnumerator"""
-    partial = MathSATExtendedPartialEnumerator()
+def test_init_with_divide_conquer_solver(sat_formula):
+    """Test initialization with MathSATDivideAndConquerEnumerator"""
+    partial = MathSATDivideAndConquerEnumerator()
     tddnnf = TheoryDDNNF(sat_formula, solver=partial)
 
-    assert tddnnf.sat_result == SAT
+    assert tddnnf.sat_result is True
     assert hasattr(tddnnf, "phi_ddnnf")
     assert isinstance(tddnnf.phi_ddnnf, FNode)
 
@@ -86,17 +86,17 @@ def test_sat_formula_compilation(sat_formula):
     total = MathSATTotalEnumerator()
     tddnnf = TheoryDDNNF(sat_formula, solver=total)
 
-    assert tddnnf.sat_result == SAT
+    assert tddnnf.sat_result is True
     assert hasattr(tddnnf, "phi_ddnnf")
     assert tddnnf.phi_ddnnf is not None
 
 
 def test_unsat_formula_no_compilation(unsat_formula):
-    """Test that UNSAT formulas don't compile to dDNNF"""
+    """Test that unsatisfiable formulas don't compile to dDNNF"""
     total = MathSATTotalEnumerator()
     tddnnf = TheoryDDNNF(unsat_formula, solver=total)
 
-    assert tddnnf.sat_result == UNSAT
+    assert tddnnf.sat_result is False
     assert not hasattr(tddnnf, "phi_ddnnf")
 
 
@@ -105,7 +105,7 @@ def test_valid_formula_compilation(valid_formula):
     total = MathSATTotalEnumerator()
     tddnnf = TheoryDDNNF(valid_formula, solver=total)
 
-    assert tddnnf.sat_result == SAT
+    assert tddnnf.sat_result is True
     assert hasattr(tddnnf, "phi_ddnnf")
 
 
@@ -114,7 +114,7 @@ def test_boolean_formula(simple_boolean_formula):
     total = MathSATTotalEnumerator()
     tddnnf = TheoryDDNNF(simple_boolean_formula, solver=total)
 
-    assert tddnnf.sat_result == SAT
+    assert tddnnf.sat_result is True
     assert hasattr(tddnnf, "phi_ddnnf")
 
 
@@ -214,31 +214,27 @@ def test_compilation_output_nnf_creation(sat_formula, temp_dir):
 
 
 def test_no_output_file_for_unsat(unsat_formula, temp_dir):
-    """Test that output file is NOT created for UNSAT formula"""
+    """Test that output file is NOT created for unsatisfiable formula"""
     total = MathSATTotalEnumerator()
     TheoryDDNNF(unsat_formula, solver=total, base_out_path=temp_dir)
 
     tddnnf_file = os.path.join(temp_dir, "tddnnf.smt2")
-    assert not os.path.isfile(tddnnf_file), "tddnnf.smt2 should NOT be created for UNSAT formula"
+    assert not os.path.isfile(tddnnf_file), "tddnnf.smt2 should NOT be created for unsatisfiable formula"
 
 
 def test_no_circuit_bc_for_unsat(unsat_formula, temp_dir):
-    """Test that circuit.bc is NOT created for UNSAT formula"""
+    """Test that circuit.bc is NOT created for unsatisfiable formula"""
     total = MathSATTotalEnumerator()
     tddnnf = TheoryDDNNF(unsat_formula, solver=total, base_out_path=temp_dir)
 
-    # Circuit.bc is created during compilation attempt but not meaningful
-    # The important part is that phi_ddnnf attribute doesn't exist
-    assert not hasattr(tddnnf, "phi_ddnnf"), "phi_ddnnf should not exist for UNSAT formula"
+    assert not hasattr(tddnnf, "phi_ddnnf"), "phi_ddnnf should not exist for unsatisfiable formula"
 
 
 def test_no_mapping_for_unsat(unsat_formula, temp_dir):
-    """Test that mapping is NOT created for UNSAT formula"""
+    """Test that mapping is NOT created for unsatisfiable formula"""
     total = MathSATTotalEnumerator()
     TheoryDDNNF(unsat_formula, solver=total, base_out_path=temp_dir)
 
-    # The mapping directory might exist from the compilation process,
-    # but the final tddnnf.smt2 should not be created
     tddnnf_file = os.path.join(temp_dir, "tddnnf.smt2")
     assert not os.path.isfile(tddnnf_file)
 
@@ -248,7 +244,7 @@ def test_no_output_without_path(sat_formula):
     total = MathSATTotalEnumerator()
     tddnnf = TheoryDDNNF(sat_formula, solver=total, base_out_path=None)
 
-    assert tddnnf.sat_result == SAT
+    assert tddnnf.sat_result is True
     assert hasattr(tddnnf, "phi_ddnnf")
     # No file should be created in current directory
     assert not os.path.isfile("tddnnf.smt2")
@@ -265,9 +261,9 @@ def test_precomputed_lemmas(sat_formula):
     precomputed_lemmas = total.get_theory_lemmas()
 
     # Now create T-DDNNF with precomputed lemmas
-    tddnnf = TheoryDDNNF(sat_formula, solver=total, tlemmas=precomputed_lemmas, sat_result=SAT)
+    tddnnf = TheoryDDNNF(sat_formula, solver=total, tlemmas=precomputed_lemmas, sat_result=True)
 
-    assert tddnnf.sat_result == SAT
+    assert tddnnf.sat_result is True
     assert hasattr(tddnnf, "phi_ddnnf")
 
 
@@ -278,9 +274,9 @@ def test_lemma_loading_from_file():
 
     # When loading lemmas from file, sat_result needs to be provided
     # or it will be computed during lemma extraction
-    tddnnf = TheoryDDNNF(phi, solver=total, load_lemmas="./tests/items/rng_lemmas.smt", sat_result=SAT)
+    tddnnf = TheoryDDNNF(phi, solver=total, load_lemmas="./tests/items/rng_lemmas.smt", sat_result=True)
 
-    assert tddnnf.sat_result == SAT
+    assert tddnnf.sat_result is True
     assert len(tddnnf.tlemmas) >= 1
 
 
@@ -302,9 +298,9 @@ def test_sat_result_parameter_sat(sat_formula):
     """Test providing sat_result parameter (SAT)"""
     total = MathSATTotalEnumerator()
 
-    tddnnf = TheoryDDNNF(sat_formula, solver=total, tlemmas=[formula.top()], sat_result=SAT)
+    tddnnf = TheoryDDNNF(sat_formula, solver=total, tlemmas=[Bool(True)], sat_result=True)
 
-    assert tddnnf.sat_result == SAT
+    assert tddnnf.sat_result is True
     assert hasattr(tddnnf, "phi_ddnnf")
 
 
@@ -321,7 +317,7 @@ def test_full_workflow_with_file_output(temp_dir):
     tddnnf = TheoryDDNNF(phi, solver=total, base_out_path=temp_dir, computation_logger=logger)
 
     # Verify compilation
-    assert tddnnf.sat_result == SAT
+    assert tddnnf.sat_result is True
     assert hasattr(tddnnf, "phi_ddnnf")
 
     # Verify file output
@@ -363,6 +359,6 @@ def test_load_lemmas_loaded_mode_from_param(sat_formula):
     total = MathSATTotalEnumerator()
     logger = {}
 
-    TheoryDDNNF(sat_formula, solver=total, tlemmas=[formula.top()], computation_logger=logger)
+    TheoryDDNNF(sat_formula, solver=total, tlemmas=[Bool(True)], computation_logger=logger)
 
     assert logger["T-DDNNF"]["ALL SMT mode"] == "loaded"

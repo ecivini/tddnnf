@@ -4,7 +4,7 @@ from pysmt.fnode import FNode
 
 from pysmt.shortcuts import And, Or, Iff, Implies, Not, Ite
 
-from theorydd.util.custom_exceptions import UnsupportedNodeException
+from enumerators.util.custom_exceptions import UnsupportedNodeException
 
 
 class RefinementWalker(DagWalker):

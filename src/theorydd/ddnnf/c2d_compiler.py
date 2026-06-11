@@ -16,7 +16,7 @@ from pysmt.shortcuts import (
 from pysmt.fnode import FNode
 from allsat_cnf.label_cnfizer import LabelCNFizer
 from theorydd.formula import save_refinement, load_refinement, get_phi_and_lemmas as _get_phi_and_lemmas
-from theorydd.constants import UNSAT, C2D_COMMAND as _C2D_COMMAND
+from theorydd.constants import C2D_COMMAND as _C2D_COMMAND
 from theorydd.formula import get_normalized
 from enumerators.solvers.mathsat_total import MathSATTotalEnumerator
 
@@ -103,7 +103,7 @@ class C2DCompiler(DDNNFCompiler):
             return
 
         # check if formula is bottom
-        if phi_cnf.is_false() or sat_result == UNSAT:
+        if phi_cnf.is_false() or sat_result is False:
             self.write_dimacs_false(dimacs_file)
             return
 

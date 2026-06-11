@@ -5,7 +5,8 @@ import os
 from typing import Dict
 from pysmt.fnode import FNode
 from pysdd.sdd import SddManager, Vtree
-from theorydd.solvers.solver import SMTEnumerator
+from enumerators.solvers import SMTEnumerator
+from pysmt.shortcuts import Bool
 from theorydd import formula
 from theorydd.tdd.theory_sdd import (
     TheorySDD,
@@ -55,7 +56,7 @@ class AbstractionSDD(TheorySDD):
         super().__init__(
             phi,
             solver=solver,
-            tlemmas=[formula.top()],
+            tlemmas=[Bool(True)],
             load_lemmas=None,
             sat_result=None,
             vtree_type=vtree_type,

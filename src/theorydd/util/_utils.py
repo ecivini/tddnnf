@@ -6,10 +6,9 @@ from pysmt.fnode import FNode
 from dd import cudd as cudd_bdd
 from theorydd.constants import VALID_SOLVER
 from enumerators.solvers.solver import SMTEnumerator
+from enumerators.solvers import MathSATDivideAndConquerEnumerator
 from enumerators.solvers.mathsat_total import MathSATTotalEnumerator
-from enumerators.solvers.mathsat_partial_extended import MathSATExtendedPartialEnumerator
-from theorydd.solvers.tabular import TabularSMTSolver
-from theorydd.util.custom_exceptions import InvalidSolverException
+from enumerators.util.custom_exceptions import InvalidSolverException
 
 
 def is_valid_solver(solver: str) -> bool:
@@ -105,11 +104,6 @@ def get_solver(solver_name: str) -> SMTEnumerator:
         raise InvalidSolverException(f"Invalid solver {solver_name}")
     if solver_name == "total":
         return MathSATTotalEnumerator()
-    if solver_name == "extended_partial":
-        return MathSATExtendedPartialEnumerator()
-    if solver_name == "tabular_total":
-        return TabularSMTSolver(is_partial=False)
-    if solver_name == "tabular_partial":
-        return TabularSMTSolver(is_partial=True)
-    # this should never happen
+    if solver_name == "divide_conquer":
+        return MathSATDivideAndConquerEnumerator()
     raise InvalidSolverException(f"Unexpected error!!! Invalid solver {solver_name}")

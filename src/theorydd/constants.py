@@ -7,14 +7,7 @@ import re
 
 VALID_VTREE = ["left", "right", "balanced", "vertical", "random"]
 
-VALID_LDD_THEORY = ["TVPI", "TVPIZ", "UTVPIZ", "BOX", "BOXZ"]
-
-VALID_SOLVER = ["partial", "total", "extended_partial", "tabular_total", "tabular_partial"]
-
-# SAT / UNSAT
-
-SAT = True
-UNSAT = False
+VALID_SOLVER = ["total", "divide_conquer"]
 
 # DD GRAPHICAL DUMPING
 
@@ -48,10 +41,6 @@ LIBRARY_PATH = os.path.dirname(os.path.realpath(__file__))
 
 C2D_COMMAND = LIBRARY_PATH + "/bin/c2d/c2d_linux"
 D4_COMMAND = LIBRARY_PATH + "/bin/d4/d4.bin"
-TABULAR_ALLSMT_COMMAND = LIBRARY_PATH + "/bin/tabular/tabularAllSMT.bin"
-
-# regex for tlemmas files
-TLEMMAS_FILE_REGEX = "tlemma_[0-9]+.smt2"
 
 # D4 NODES
 D4_AND_NODE = 0

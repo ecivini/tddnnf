@@ -5,7 +5,7 @@ from pysdd.sdd import SddManager
 from pysmt.fnode import FNode
 from pysmt.walkers import DagWalker, handles
 import pysmt.operators as op
-from theorydd.util.custom_exceptions import UnsupportedNodeException
+from enumerators.util.custom_exceptions import UnsupportedNodeException
 
 
 class SDDWalker(DagWalker):

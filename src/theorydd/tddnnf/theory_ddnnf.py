@@ -3,15 +3,13 @@ import time
 import logging
 import os
 
-from enumerators.solvers.mathsat_partial_extended import MathSATExtendedPartialEnumerator
+from enumerators.solvers import MathSATDivideAndConquerEnumerator
 from theorydd.ddnnf.d4_compiler import D4Compiler
 from pysmt.fnode import FNode
 from pysmt.shortcuts import write_smtlib, And, Not
-from enumerators.solvers.solver import SMTEnumerator
+from enumerators.solvers import SMTEnumerator
 from theorydd import formula
 from theorydd.solvers.lemma_extractor import extract
-
-from theorydd.constants import SAT
 from theorydd.tddnnf.types import TheoryDNNFType
 
 
@@ -37,7 +35,7 @@ class TheoryDDNNF:
             self.logger = logging.getLogger("theory_ddnnf")
 
         if solver is None:
-            solver = MathSATExtendedPartialEnumerator()
+            solver = MathSATDivideAndConquerEnumerator()
 
         if computation_logger is None:
             computation_logger = {}
@@ -84,7 +82,7 @@ class TheoryDDNNF:
             return
 
         # Compile to d-DNNF
-        if sat_result == SAT:
+        if sat_result is True:
             d4 = D4Compiler(solver=solver)
             self.phi_ddnnf, nodes, edges = d4.compile_dDNNF(
                 phi=self.phi,
