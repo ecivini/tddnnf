@@ -4,7 +4,7 @@ from io import StringIO
 import json
 import os
 
-from typing import Collection, List, Dict, Tuple, cast
+from typing import List, Dict, Tuple, cast
 from pysmt.shortcuts import And, Symbol, read_smtlib, write_smtlib
 from pysmt.fnode import FNode
 from pysmt.smtlib.script import smtlibscript_from_formula as _script_from_formula
@@ -13,8 +13,6 @@ from pysmt.typing import BOOL
 from theorydd.util._string_generator import SequentialStringGenerator
 
 from theorydd.walkers.normalizer import NormalizerWalker
-from theorydd.walkers.size_counter import CountingWalker
-from theorydd.walkers.duoble_negation_walker import DoubleNegWalker
 
 
 def read_phi(filename: str) -> FNode:
@@ -48,18 +46,6 @@ def get_atoms(phi: FNode) -> List[FNode]:
         List[FNode]: the atoms in the formula
     """
     return list(phi.get_atoms())
-
-
-def get_symbols(phi: FNode) -> List[FNode]:
-    """returns all symbols in phi
-
-    Args:
-        phi (FNode): a pysmt formula
-
-    Returns:
-        List[FNode]: the symbols in the formula
-    """
-    return list(phi.get_free_variables())
 
 
 def get_normalized(phi: FNode, converter) -> FNode:
@@ -224,35 +210,3 @@ def load_abstraction_function(mapping_path: str) -> Dict[FNode, object]:
             f = cast(FNode, get_formula(input_stream))
             mapping[f] = key
     return mapping
-
-
-def without_double_neg(phi: FNode) -> FNode:
-    """removes all double negations from phi
-
-    Args:
-        phi (FNode): a pysmt formula
-
-    Returns:
-        FNode: the formula without double negations
-    """
-    walker = DoubleNegWalker()
-    return walker.walk(phi)
-
-
-def get_fnode_size(phi: FNode) -> int:
-    """returns the size of the formula,
-    which is the total amount of nodes
-    of the boolean abstraction of the formula
-
-    Args:
-        phi (FNode): a pysmt formula
-
-    Returns:
-        int: the size of the formula
-    """
-    walker = CountingWalker()
-    return walker.walk(phi)
-
-
-def get_theory_atoms(atoms: Collection[FNode]) -> Collection[FNode]:
-    return [atom for atom in atoms if not atom.is_symbol(BOOL)]

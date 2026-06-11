@@ -37,30 +37,7 @@ def test_atom_diff():
     assert diff == [Symbol("C", BOOL)], "items missing in the second set should not be considered"
 
 
-def test_get_symbols():
-    """tests for formula.get_symbols()"""
-    phi = And(
-        Symbol("F", BOOL),
-        LE(Symbol("X", REAL), Symbol("Y", REAL)),
-        Symbol("Z", BOOL),
-    )
-    assert len(formula.get_symbols(phi)) == 4, "the normalized formula has 4 symbols"
-    phi = Or(
-        And(
-            Symbol("F", BOOL),
-            LE(Symbol("X", REAL), Symbol("Y", REAL)),
-            LE(Symbol("Y", REAL), Symbol("X", REAL)),
-            Symbol("Z", BOOL),
-        ),
-        Not(LE(Symbol("X", REAL), Symbol("Y", REAL))),
-        Not(LE(Symbol("Y", REAL), Symbol("X", REAL))),
-    )
-    assert len(formula.get_symbols(phi)) == 4, (
-        "the normalized formula has 4 symbols, even if some appear more than once"
-    )
-
-
-def test_get_atomss():
+def test_get_atoms():
     """tyests for get atoms"""
     phi = And(
         Symbol("F", BOOL),
