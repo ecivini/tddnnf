@@ -22,8 +22,6 @@ D4_BRANCH = "circuits_with_projected_vars"
 LIBPATOH_DOWNLOAD_TAR = "patoh-Linux-x86_64.tar.gz"
 LIBPATOH_DOWNLOAD_URL = f"https://faculty.cc.gatech.edu/~umit/PaToH/{LIBPATOH_DOWNLOAD_TAR}"
 
-TABULAR_REPO = "https://github.com/giuspek/tabularAllSMT"
-
 
 def get_args() -> Namespace:
     """Get arguments from command line"""
@@ -36,11 +34,6 @@ def get_args() -> Namespace:
     parser.add_argument(
         "--d4",
         help="Installs the d4 dDNNF compiler in the provided directory",
-        action="store_true",
-    )
-    parser.add_argument(
-        "--tabular",
-        help="Installs the tabular SMT solver in the provided directory",
         action="store_true",
     )
     return parser.parse_args()
@@ -156,28 +149,6 @@ def setup_libpatoh(download_path: str, install_path: str) -> None:
     os.system(f"rm -r {libpatoh_extracted_path}")
 
 
-def setup_tabular(install_path: str) -> None:
-    """Installs tabular in the provided directory
-
-    Args:
-        install_path (str): the directory to install tabular
-    """
-    install_path += "/tabular"
-    create_binary_folder(install_path)
-
-    # clone repo
-    repo_path = install_path + "/repo"
-    clone_repo(TABULAR_REPO, repo_path)
-
-    # copy binary outside of repo folder
-    os.system(f"cp {repo_path}/tabularAllSMT {install_path}/tabularAllSMT.bin")
-
-    # make binary executable
-    os.chmod(install_path + "/tabularAllSMT.bin", stat.S_IXUSR)
-
-    clean_repo(repo_path)
-
-
 def clean_repo(repo_path: str) -> None:
     """Removes the cloned repository"""
     # clean everything
@@ -230,13 +201,6 @@ def run_setup():
             print("d4 successfully installed")
         except InstallException as e:
             print(f"Failed to install d4: {e}")
-    if args.tabular:
-        print("Installing tabular AllSMT...")
-        try:
-            setup_tabular(binary_path)
-            print("TabularAllSMT successfully installed")
-        except InstallException as e:
-            print(f"Failed to install tabular: {e}")
 
 
 if __name__ == "__main__":
