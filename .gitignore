@@ -132,3 +132,10 @@ src/theorydd/bin/
 
 # Data files
 data
+
+# Generated / build artifacts
+d4v2/
+out.smt2
+*.svg
+uv.lock
+tests/items/

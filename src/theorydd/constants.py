@@ -17,11 +17,6 @@ BDD_DOT_KEY_START_REGEX = r'"[a-z]*-[0-9]*"]'
 BDD_DOT_KEY_END_REGEX = r'-[0-9]*"]'
 BDD_DOT_REPLACE_REGEX = BDD_DOT_LINE_REGEX
 
-BDD_LINE_REGEX = r">[a-z]+&#45;[0-9]+</text>"
-BDD_KEY_START_REGEX = r"[a-z]+&#45;[0-9]+<"
-BDD_KEY_END_REGEX = r"&#45;[0-9]+<"
-BDD_REPLECE_REGEX = r">[a-z]+&#45;[0-9]+<"
-
 VTREE_LINE_REGEX = r'n[0-9]+ [\[]label="[A-Z]+",fontname='
 VTREE_KEY_START_REGEX = r'[A-Z]+",fontname='
 VTREE_KEY_END_REGEX = r'",fontname='
