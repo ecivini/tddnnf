@@ -65,7 +65,7 @@ class TheoryDD(ABC):
                 smt_solver,
                 computation_logger=computation_logger,
             )
-        tlemmas = list(map(lambda l: formula.get_normalized(l, smt_solver.get_converter()), tlemmas))
+        tlemmas = list(map(lambda lemma: formula.get_normalized(lemma, smt_solver.get_converter()), tlemmas))
         # BASICALLY PADDING TO AVOID POSSIBLE ISSUES
         while len(tlemmas) < 2:
             tlemmas.append(formula.top())

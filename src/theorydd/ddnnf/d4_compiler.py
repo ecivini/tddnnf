@@ -464,8 +464,8 @@ class D4Compiler(DDNNFCompiler):
                 if m := _RE_NNF_EDGE.match(line):
                     a, b, ll = m.groups()
                     f.write(f"{a} {b}")
-                    for l in (ll or "").split():
-                        i = int(l)
+                    for tok in (ll or "").split():
+                        i = int(tok)
                         a = abs(i)
                         s = 1 if i > 0 else -1
                         if a in projected_ids:

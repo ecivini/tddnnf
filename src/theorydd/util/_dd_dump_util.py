@@ -4,7 +4,29 @@ import re
 import pydot
 from pysmt.formula import FNode
 from theorydd.util._utils import get_string_from_atom as _get_string_from_atom
-from theorydd.constants import *
+from theorydd.constants import (
+    BDD_DOT_LINE_REGEX,
+    BDD_DOT_KEY_START_REGEX,
+    BDD_DOT_KEY_END_REGEX,
+    BDD_DOT_REPLACE_REGEX,
+    BDD_LINE_REGEX,
+    BDD_KEY_START_REGEX,
+    BDD_KEY_END_REGEX,
+    BDD_REPLECE_REGEX,
+    VTREE_LINE_REGEX,
+    VTREE_KEY_START_REGEX,
+    VTREE_KEY_END_REGEX,
+    VTREE_REPLECE_REGEX,
+    SDD_LINE_LEFT_REGEX,
+    SDD_LINE_RIGHT_REGEX,
+    SDD_LINE_BOTH_REGEX,
+    SDD_KEY_START_LEFT_REGEX,
+    SDD_KEY_END_LEFT_REGEX,
+    SDD_KEY_START_RIGHT_REGEX,
+    SDD_KEY_END_RIGHT_REGEX,
+    SDD_REPLACE_LEFT_REGEX,
+    SDD_REPLACE_RIGHT_REGEX,
+)
 
 
 def change_bbd_dot_names(output_file, mapping):
