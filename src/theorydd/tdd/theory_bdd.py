@@ -7,24 +7,19 @@ import time
 from collections.abc import Iterator
 from typing import Dict, List
 
-import pydot
 import dd.cudd as cudd_bdd
+import pydot
+from enumerators.solvers.solver import SMTEnumerator
 from pysmt.fnode import FNode
 from pysmt.shortcuts import And, Bool, Not, Or
 
 from theorydd import formula
-
 from theorydd.formula import get_atoms
 from theorydd.solvers.lemma_extractor import find_qvars
-from enumerators.solvers.solver import SMTEnumerator
 from theorydd.tdd.theory_dd import TheoryDD
 from theorydd.util._dd_dump_util import change_bbd_dot_names as _change_bbd_dot_names
 from theorydd.util._string_generator import SequentialStringGenerator
-from theorydd.util._utils import (
-    cudd_dump as _cudd_dump,
-    cudd_load as _cudd_load,
-    get_solver as _get_solver,
-)
+from theorydd.util._utils import cudd_dump, cudd_load, get_solver
 from theorydd.walkers.walker_bdd import BDDWalker
 
 
@@ -91,7 +86,7 @@ class TheoryBDD(TheoryDD):
 
         # NORMALIZE PHI
         if isinstance(solver, str):
-            smt_solver = _get_solver(solver)
+            smt_solver = get_solver(solver)
         else:
             smt_solver = solver
         phi = self._normalize_input(phi, smt_solver, computation_logger[self.structure_name])
@@ -357,7 +352,7 @@ class TheoryBDD(TheoryDD):
         with open(f"{folder_path}/qvars.qvars", "w", encoding="utf8") as out:
             json.dump(qvars_indexes, out)
         # SAVE DD
-        _cudd_dump(self.root, f"{folder_path}/tbdd_data")
+        cudd_dump(self.root, f"{folder_path}/tbdd_data")
 
     def _load_from_folder(self, folder_path: str, normalization_solver: SMTEnumerator | None = None) -> None:
         """Load a T-BDD from a folder
@@ -373,14 +368,14 @@ class TheoryBDD(TheoryDD):
         if not os.path.isfile(f"{folder_path}/qvars.qvars"):
             raise FileNotFoundError(f"Cannot load T-BDD: File {folder_path}/qvars.qvars does not exist")
         if normalization_solver is None:
-            normalization_solver = _get_solver("total")
+            normalization_solver = get_solver("total")
         abstraction = formula.load_abstraction_function(f"{folder_path}/abstraction.json")
         self.abstraction = {
             formula.get_normalized(k, normalization_solver.get_converter()): v for k, v in abstraction.items()
         }
         self.refinement = {v: k for k, v in self.abstraction.items()}
         self.bdd = cudd_bdd.BDD()
-        self.root, ordering_dict = _cudd_load(f"{folder_path}/tbdd_data", self.bdd)
+        self.root, ordering_dict = cudd_load(f"{folder_path}/tbdd_data", self.bdd)
         self.ordering = [0] * len(ordering_dict)
         for k, v in ordering_dict.items():
             self.ordering[v] = self.refinement[k]
@@ -427,5 +422,5 @@ def tbdd_load_from_folder(folder_path: str, normalizer_solver: SMTEnumerator | N
         TheoryBDD: the T-BDD loaded from the file
     """
     if normalizer_solver is None:
-        normalizer_solver = _get_solver("total")
+        normalizer_solver = get_solver("total")
     return TheoryBDD(None, folder_name=folder_path, solver=normalizer_solver)

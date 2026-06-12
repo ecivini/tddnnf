@@ -1,14 +1,14 @@
-from typing import Dict, Tuple, List
-import time
 import logging
 import os
+import time
+from typing import Dict, List, Tuple
 
-from enumerators.solvers import MathSATDivideAndConquerEnumerator
-from theorydd.ddnnf.d4_compiler import D4Compiler
+from enumerators.solvers import MathSATDivideAndConquerEnumerator, SMTEnumerator
 from pysmt.fnode import FNode
-from pysmt.shortcuts import write_smtlib, And, Not
-from enumerators.solvers import SMTEnumerator
+from pysmt.shortcuts import And, Not, write_smtlib
+
 from theorydd import formula
+from theorydd.ddnnf.d4_compiler import D4Compiler
 from theorydd.solvers.lemma_extractor import extract
 from theorydd.tddnnf.types import TheoryDNNFType
 

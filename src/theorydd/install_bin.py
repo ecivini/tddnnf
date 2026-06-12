@@ -1,8 +1,8 @@
 """setup file"""
 
-from argparse import ArgumentParser, Namespace
 import os
 import stat
+from argparse import ArgumentParser, Namespace
 
 from git import Repo
 

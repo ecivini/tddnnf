@@ -3,9 +3,11 @@
 import logging
 import time
 from typing import Dict, List, Tuple
-from pysmt.fnode import FNode
-from theorydd import formula
+
 from enumerators.solvers import SMTEnumerator
+from pysmt.fnode import FNode
+
+from theorydd import formula
 
 
 def extract(

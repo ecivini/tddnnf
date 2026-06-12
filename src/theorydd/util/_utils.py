@@ -3,7 +3,7 @@
 import pickle
 from collections.abc import Iterable
 from pysmt.fnode import FNode
-from dd import cudd as cudd_bdd
+import dd.cudd as cudd_bdd
 from theorydd.constants import VALID_SOLVER
 from enumerators.solvers.solver import SMTEnumerator
 from enumerators.solvers import MathSATDivideAndConquerEnumerator

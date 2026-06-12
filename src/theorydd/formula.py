@@ -1,17 +1,17 @@
 """this module simplifies interactions with the pysmt library for handling SMT formulas"""
 
-from io import StringIO
 import json
 import os
+from io import StringIO
+from typing import Dict, List, Tuple, cast
 
-from typing import List, Dict, Tuple, cast
-from pysmt.shortcuts import And, Symbol, read_smtlib, write_smtlib
 from pysmt.fnode import FNode
-from pysmt.smtlib.script import smtlibscript_from_formula as _script_from_formula
+from pysmt.shortcuts import And, Symbol, read_smtlib, write_smtlib
 from pysmt.smtlib.parser.parser import get_formula
+from pysmt.smtlib.script import smtlibscript_from_formula
 from pysmt.typing import BOOL
-from theorydd.util._string_generator import SequentialStringGenerator
 
+from theorydd.util._string_generator import SequentialStringGenerator
 from theorydd.walkers.normalizer import NormalizerWalker
 
 
@@ -122,7 +122,7 @@ def save_refinement(mapping: Dict[object, FNode], mapping_file: str) -> None:
     mapping_items: List[Tuple[object, str]] = []
     for k, v in mapping.items():
         # serialize formula into SMTlib script and read it on a string stream
-        script = _script_from_formula(v)
+        script = smtlibscript_from_formula(v)
         output_stream = StringIO()
         script.serialize(output_stream)
         serialized_item = output_stream.getvalue()
@@ -147,7 +147,7 @@ def save_abstraction_function(mapping: Dict[FNode, object], mapping_file: str) -
     mapping_items: List[Tuple[str, object]] = []
     for k, v in mapping.items():
         # serialize formula into SMTlib script and read it on a string stream
-        script = _script_from_formula(k)
+        script = smtlibscript_from_formula(k)
         output_stream = StringIO()
         script.serialize(output_stream)
         serialized_item = output_stream.getvalue()

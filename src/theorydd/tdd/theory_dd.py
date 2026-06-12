@@ -1,17 +1,17 @@
 """interface for the theory DD classes"""
 
-from abc import ABC, abstractmethod
-from collections.abc import Iterator
 import logging
 import time
+from abc import ABC, abstractmethod
+from collections.abc import Iterator
 from typing import Dict, List, Tuple
 
+from enumerators.solvers.solver import SMTEnumerator
 from pysmt.fnode import FNode
 from pysmt.shortcuts import And, Bool
 
 from theorydd import formula
 from theorydd.solvers.lemma_extractor import extract
-from enumerators.solvers.solver import SMTEnumerator
 from theorydd.walkers.walker_bdd import DagWalker as DDWalker
 
 

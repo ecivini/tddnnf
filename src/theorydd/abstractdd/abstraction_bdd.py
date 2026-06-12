@@ -9,11 +9,7 @@ from pysmt.shortcuts import Bool
 from theorydd import formula
 from theorydd.tdd.theory_bdd import TheoryBDD
 from enumerators.solvers import SMTEnumerator
-from theorydd.util._utils import (
-    cudd_dump as _cudd_dump,
-    cudd_load as _cudd_load,
-    get_solver as _get_solver,
-)
+from theorydd.util._utils import cudd_dump, cudd_load, get_solver
 
 
 class AbstractionBDD(TheoryBDD):
@@ -73,7 +69,7 @@ class AbstractionBDD(TheoryBDD):
         # SAVE MAPPING
         formula.save_abstraction_function(self.abstraction, f"{folder_path}/abstraction.json")
         # SAVE BDD
-        _cudd_dump(self.root, f"{folder_path}/abstraction_bdd_data")
+        cudd_dump(self.root, f"{folder_path}/abstraction_bdd_data")
 
     def _load_from_folder(self, folder_path: str, normalization_solver: SMTEnumerator | str = "total") -> None:
         """Loads an Abstraction BDD from a folder
@@ -87,7 +83,7 @@ class AbstractionBDD(TheoryBDD):
         if not os.path.isfile(f"{folder_path}/abstraction.json"):
             raise FileNotFoundError(f"Cannot load Abstraction BDD: File {folder_path}/abstraction.json does not exist")
         if isinstance(normalization_solver, str):
-            smt_solver = _get_solver(normalization_solver)
+            smt_solver = get_solver(normalization_solver)
         else:
             smt_solver = normalization_solver
         abstraction = formula.load_abstraction_function(f"{folder_path}/abstraction.json")
@@ -95,7 +91,7 @@ class AbstractionBDD(TheoryBDD):
         self.abstraction = {formula.get_normalized(k, smt_solver.get_converter()): v for k, v in abstraction.items()}
         self.refinement = {v: k for k, v in self.abstraction.items()}
         self.bdd = cudd_bdd.BDD()
-        self.root, ordering_dict = _cudd_load(f"{folder_path}/abstraction_bdd_data", self.bdd)
+        self.root, ordering_dict = cudd_load(f"{folder_path}/abstraction_bdd_data", self.bdd)
         self.ordering = [0] * len(ordering_dict)
         for k, v in ordering_dict.items():
             self.ordering[v] = self.refinement[k]
