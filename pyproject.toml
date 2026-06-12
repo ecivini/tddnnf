@@ -25,7 +25,7 @@ dependencies = [
   "allsat_cnf @ git+https://github.com/masinag/allsat-cnf@main",
   "GitPython>=3.1.44",
   "python-dotenv==1.0.1",
-  "tlemmas-enumeration @ file:///home/gabriele/Documents/phd/theorykc/tlemmas-enumeration",
+  "tlemmas-enumeration",
 ]
 
 [project.urls]
@@ -43,6 +43,9 @@ addopts = ["--import-mode=importlib"]
 # ruff configuration
 [tool.ruff]
 line-length = 120
+
+[tool.uv.sources]
+tlemmas-enumeration = { path = "../tlemmas-enumeration" }
 
 [dependency-groups]
 dev = ["ruff>=0.4.0"]
