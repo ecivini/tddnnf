@@ -4,13 +4,13 @@ from copy import deepcopy
 
 from pysmt.shortcuts import And, Iff, Not, Or, Solver
 
-from enumerators.solvers.mathsat_partial_extended import MathSATExtendedPartialEnumerator
+from enumerators.solvers import MathSATDivideAndConquerEnumerator
 from theorydd.tdd.theory_bdd import TheoryBDD
 
 
 def test_init_default(sat_formula):
     """tests BDD generation"""
-    partial = MathSATExtendedPartialEnumerator()
+    partial = MathSATDivideAndConquerEnumerator()
     partial.check_all_sat(sat_formula, None, store_models=True)
     models = partial.get_models()
     tbdd = TheoryBDD(sat_formula, "total")
@@ -20,7 +20,7 @@ def test_init_default(sat_formula):
 
 def test_init_with_known_lemmas(sat_formula):
     """tests BDD generation"""
-    partial = MathSATExtendedPartialEnumerator()
+    partial = MathSATDivideAndConquerEnumerator()
     partial.check_all_sat(sat_formula, None, store_models=True)
     lemmas = partial.get_theory_lemmas()
     models = partial.get_models()
@@ -31,7 +31,7 @@ def test_init_with_known_lemmas(sat_formula):
 
 def test_init_updated_computation_logger(sat_formula):
     """tests BDD generation"""
-    partial = MathSATExtendedPartialEnumerator()
+    partial = MathSATDivideAndConquerEnumerator()
     partial.check_all_sat(sat_formula, None, store_models=True)
     models = partial.get_models()
     logger = {"hi": "hello"}
@@ -45,7 +45,7 @@ def test_init_updated_computation_logger(sat_formula):
 
 def test_init_unsat_formula(unsat_formula):
     """tests BDD generation"""
-    partial = MathSATExtendedPartialEnumerator()
+    partial = MathSATDivideAndConquerEnumerator()
     partial.check_all_sat(unsat_formula, None, store_models=True)
     tbdd = TheoryBDD(unsat_formula, "total")
     assert tbdd.count_nodes() == 1, "TBDD is only False node"
@@ -54,7 +54,7 @@ def test_init_unsat_formula(unsat_formula):
 
 def test_init_tautology(prop_valid_formula):
     """tests BDD generation"""
-    partial = MathSATExtendedPartialEnumerator()
+    partial = MathSATDivideAndConquerEnumerator()
     partial.check_all_sat(prop_valid_formula, None, store_models=True)
     tbdd = TheoryBDD(prop_valid_formula, "total")
     assert tbdd.count_nodes() == 1, "TBDD should be only True node"
@@ -90,7 +90,7 @@ def test_init_models(solver, any_formula):
 
 def test_lemma_loading(rangen_formula):
     """tests loading data with solver"""
-    solver = MathSATExtendedPartialEnumerator()
+    solver = MathSATDivideAndConquerEnumerator()
     tbdd = TheoryBDD(rangen_formula, solver=solver, load_lemmas="./tests/items/rng_lemmas.smt")
     solver.reset()
     other_tbdd = TheoryBDD(rangen_formula, solver=solver)

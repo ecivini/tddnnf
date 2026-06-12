@@ -3,16 +3,16 @@
 import logging
 import time
 from typing import Dict, List, Tuple
+
+from enumerators.solvers import SMTEnumerator
 from pysmt.fnode import FNode
+
 from theorydd import formula
-from theorydd.solvers.solver import SMTEnumerator
-from theorydd.constants import SAT, UNSAT
 
 
 def extract(
     phi: FNode,
     smt_solver: SMTEnumerator,
-    enumerate_true: bool = False,
     use_boolean_mapping: bool = False,
     computation_logger: Dict = None,
     atoms: List[FNode] | None = None,
@@ -21,16 +21,14 @@ def extract(
 
     Args:
         phi (FNode): a pysmt formula
-        smt_solver (SMTSolver | PartialSMTSolver): the SMT solver to be used for lemma extraction
-        enumerate_true (bool) [False]: if set to True, enumerate all T-lemmas possible
-            over the atoms of phi
+        smt_solver (SMTEnumerator): the SMT solver to be used for lemma extraction
         use_boolean_mapping (bool) [False]: optional for SMTEnumerator, if the solver
             supports enumerating thorugh a boolean mapping
         computation_logger (Dict) [None]: a dictionary that will be updated to store computation info
 
     Returns:
-        bool: SAT or UNSAT depnding on SMT-solver output
-        List[FNode]: the list of lemmas extracted from phi. If phi is UNSAT this list is contains the lemmas that give T-unsatisfiability
+        bool: True or False depending on SMT-solver output
+        List[FNode]: the list of lemmas extracted from phi. If phi is unsatisfiable this list contains the lemmas that give T-unsatisfiability
         Dict | None: when using a boolean mapping the boolean mapping used, otherwise None
     """
     logger = logging.getLogger("theorydd_lemma_extractor")
@@ -41,22 +39,19 @@ def extract(
     if use_boolean_mapping:
         boolean_mapping = formula.get_boolean_mapping(phi)
     start_time = time.time()
-    if enumerate_true:
-        smt_result = smt_solver.enumerate_true(phi)
-    else:
-        smt_result = smt_solver.check_all_sat(phi, atoms)
+    smt_result = smt_solver.check_all_sat(phi, atoms)
     elapsed_time = time.time() - start_time
     logger.info("Computed AllSMT in %s seconds", str(elapsed_time))
     computation_logger["All-SMT computation time"] = elapsed_time
     lemmas = smt_solver.get_theory_lemmas()
     computation_logger["T-lemmas amount"] = len(lemmas)
-    if smt_result == UNSAT:
+    if not smt_result:
         logger.info("Phi is T-UNSAT")
         computation_logger["All-SMT result"] = "UNSAT"
-        return UNSAT, lemmas, boolean_mapping
+        return False, lemmas, boolean_mapping
     logger.info("Phi is T-SAT")
     computation_logger["All-SMT result"] = "SAT"
-    return SAT, lemmas, boolean_mapping
+    return True, lemmas, boolean_mapping
 
 
 def find_qvars(original_phi: FNode, phi_and_lemmas: FNode, computation_logger: Dict = None):

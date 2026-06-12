@@ -1,16 +1,17 @@
 """interface for the theory DD classes"""
 
-from abc import ABC, abstractmethod
-from collections.abc import Iterator
 import logging
 import time
+from abc import ABC, abstractmethod
+from collections.abc import Iterator
 from typing import Dict, List, Tuple
 
+from enumerators.solvers.solver import SMTEnumerator
 from pysmt.fnode import FNode
+from pysmt.shortcuts import And, Bool
 
 from theorydd import formula
 from theorydd.solvers.lemma_extractor import extract
-from enumerators.solvers.solver import SMTEnumerator
 from theorydd.walkers.walker_bdd import DagWalker as DDWalker
 
 
@@ -68,7 +69,7 @@ class TheoryDD(ABC):
         tlemmas = list(map(lambda lemma: formula.get_normalized(lemma, smt_solver.get_converter()), tlemmas))
         # BASICALLY PADDING TO AVOID POSSIBLE ISSUES
         while len(tlemmas) < 2:
-            tlemmas.append(formula.top())
+            tlemmas.append(Bool(True))
         elapsed_time = time.time() - start_time
         self.logger.info("Lemmas loaded in %s seconds", str(elapsed_time))
         computation_logger["lemmas loading time"] = elapsed_time
@@ -80,7 +81,7 @@ class TheoryDD(ABC):
         Returns the root of the DD"""
         start_time = time.time()
         self.logger.info("Building T-DD for UNSAT formula...")
-        root = walker.walk(formula.bottom())
+        root = walker.walk(Bool(False))
         elapsed_time = time.time() - start_time
         self.logger.info("T-DD for UNSAT formula built in %s seconds", str(elapsed_time))
         computation_logger["UNSAT DD building time"] = elapsed_time
@@ -105,7 +106,7 @@ class TheoryDD(ABC):
         # DD for t-lemmas
         start_time = time.time()
         self.logger.info("Building T-DD for big and of t-lemmas...")
-        tlemmas_dd = walker.walk(formula.big_and(tlemmas))
+        tlemmas_dd = walker.walk(And(tlemmas))
         elapsed_time = time.time() - start_time
         self.logger.info("DD for T-lemmas built in %s seconds", str(elapsed_time))
         computation_logger["t-lemmas DD building time"] = elapsed_time

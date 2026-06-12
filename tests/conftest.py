@@ -2,11 +2,13 @@ import pysmt.environment
 import pytest
 from pysmt.shortcuts import REAL, Symbol
 from pysmt.typing import ArrayType, BOOL, INT
+import pysmt.typing
 
 from theorydd.formula import read_phi
-from enumerators.solvers.mathsat_partial_extended import MathSATExtendedPartialEnumerator
+from enumerators.solvers import MathSATDivideAndConquerEnumerator
 from enumerators.solvers.mathsat_total import MathSATTotalEnumerator
 from enumerators.solvers.with_partitioning import WithPartitioningWrapper
+from enumerators.solvers.with_projection import WithProjectionWrapper
 from enumerators.solvers.solver import SMTEnumerator
 
 
@@ -15,20 +17,25 @@ def pytest_runtest_setup():
     env.enable_infix_notation = True
 
 
+def _make_solver(base_cls, proj: bool, **kwargs):
+    s = base_cls(**kwargs)
+    return WithProjectionWrapper(s) if proj else s
+
+
 SOLVERS = [
-    ("total", MathSATTotalEnumerator, {"project_on_theory_atoms": False}),
-    ("total-project", MathSATTotalEnumerator, {"project_on_theory_atoms": True}),
-    ("partial-1", MathSATExtendedPartialEnumerator, {"project_on_theory_atoms": False, "parallel_procs": 1}),
-    ("partial-project-1", MathSATExtendedPartialEnumerator, {"project_on_theory_atoms": True, "parallel_procs": 1}),
-    ("partial-8", MathSATExtendedPartialEnumerator, {"project_on_theory_atoms": False, "parallel_procs": 8}),
-    ("partial-project-8", MathSATExtendedPartialEnumerator, {"project_on_theory_atoms": True, "parallel_procs": 8}),
+    ("total", lambda: _make_solver(MathSATTotalEnumerator, False)),
+    ("total-project", lambda: _make_solver(MathSATTotalEnumerator, True)),
+    ("partial-1", lambda: _make_solver(MathSATDivideAndConquerEnumerator, False, parallel_procs=1)),
+    ("partial-project-1", lambda: _make_solver(MathSATDivideAndConquerEnumerator, True, parallel_procs=1)),
+    ("partial-8", lambda: _make_solver(MathSATDivideAndConquerEnumerator, False, parallel_procs=8)),
+    ("partial-project-8", lambda: _make_solver(MathSATDivideAndConquerEnumerator, True, parallel_procs=8)),
 ]
 
 
 @pytest.fixture(params=SOLVERS, ids=lambda s: s[0])
 def solver(request) -> SMTEnumerator:
-    _, solver_cls, params = request.param
-    return solver_cls(**params)
+    _, solver_factory = request.param
+    return solver_factory()
 
 
 @pytest.fixture(params=["raw", "partitioned"], ids=["mode:raw", "mode:part"])
@@ -38,9 +45,17 @@ def wsolver(solver, request):
     return WithPartitioningWrapper(base_solver=solver)
 
 
+def _is_projected(s):
+    while hasattr(s, "_base_solver"):
+        if isinstance(s, WithProjectionWrapper):
+            return True
+        s = s._base_solver
+    return False
+
+
 @pytest.fixture
 def solver_info(wsolver) -> tuple[SMTEnumerator, bool, bool]:
-    return wsolver, getattr(wsolver, "_project_on_theory_atoms", False), isinstance(wsolver, WithPartitioningWrapper)
+    return wsolver, _is_projected(wsolver), isinstance(wsolver, WithPartitioningWrapper)
 
 
 # ---- Real variables ----
@@ -117,6 +132,14 @@ def array1():
 @pytest.fixture
 def array2():
     return Symbol("arr2", ArrayType(INT, INT))
+
+
+@pytest.fixture()
+def default_phi(x, y, b):
+    """Returns a default SMT formula
+    [(x>0) ∧ (x<1)] ∧ [(y<1) ∨ ((x>y) ∧ (y>1/2))] ∧ b1
+    """
+    return ((0 < x) & (x < 1)) & ((y < 1) | (y < x) & (0.5 < y)) & b
 
 
 @pytest.fixture

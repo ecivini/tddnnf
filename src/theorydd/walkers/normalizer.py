@@ -1,12 +1,10 @@
 """this module defines a Walker that takes a pysmt formula and normalizes its atoms"""
 
-from pysmt.walkers import DagWalker, handles
 import pysmt.operators as op
+from enumerators.util.custom_exceptions import UnsupportedNodeException
 from pysmt.fnode import FNode
-
-from pysmt.shortcuts import And, Or, Iff, Implies, TRUE, FALSE, Not, Ite
-
-from theorydd.util.custom_exceptions import UnsupportedNodeException
+from pysmt.shortcuts import FALSE, TRUE, And, Iff, Implies, Ite, Not, Or
+from pysmt.walkers import DagWalker, handles
 
 
 class NormalizerWalker(DagWalker):

@@ -1,7 +1,6 @@
-
+from enumerators.solvers.mathsat_total import MathSATTotalEnumerator
 from pysmt.shortcuts import read_smtlib
 
-from enumerators.solvers.mathsat_total import MathSATTotalEnumerator
 from theorydd.tddnnf.theory_ddnnf import TheoryDDNNF, TheoryDNNFType
 
 EXAMPLE_CODE = "06"
@@ -15,13 +14,13 @@ def main():
 
     # BUILD YOUR DD WITH THE CONSTRUCTOR
 
-    tddnnf = TheoryDDNNF(
+    TheoryDDNNF(
         phi,
         computation_logger=logger,
         base_out_path=f"data/{EXAMPLE_CODE}",
         store_tlemmas=True,
         stop_after_allsmt=True,
-        solver=MathSATTotalEnumerator(project_on_theory_atoms=False, computation_logger=logger),
+        solver=MathSATTotalEnumerator(computation_logger=logger),
         tddnnf_type=TheoryDNNFType.TReduced,
     )
 

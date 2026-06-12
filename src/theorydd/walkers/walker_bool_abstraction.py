@@ -1,10 +1,8 @@
-from pysmt.walkers import DagWalker, handles
 import pysmt.operators as op
+from enumerators.util.custom_exceptions import UnsupportedNodeException
 from pysmt.fnode import FNode
-
-from pysmt.shortcuts import And, Or, Iff, Implies, Not, Ite, BOOL
-
-from theorydd.util.custom_exceptions import UnsupportedNodeException
+from pysmt.shortcuts import BOOL, And, Iff, Implies, Ite, Not, Or
+from pysmt.walkers import DagWalker, handles
 
 
 class BooleanAbstractionWalker(DagWalker):

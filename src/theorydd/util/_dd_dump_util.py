@@ -9,10 +9,6 @@ from theorydd.constants import (
     BDD_DOT_KEY_START_REGEX,
     BDD_DOT_KEY_END_REGEX,
     BDD_DOT_REPLACE_REGEX,
-    BDD_LINE_REGEX,
-    BDD_KEY_START_REGEX,
-    BDD_KEY_END_REGEX,
-    BDD_REPLECE_REGEX,
     VTREE_LINE_REGEX,
     VTREE_KEY_START_REGEX,
     VTREE_KEY_END_REGEX,
@@ -48,27 +44,6 @@ def change_bbd_dot_names(output_file, mapping):
     dot_file.close()
     with open(output_file, "w", encoding="utf8") as out:
         print(dot_output, file=out)
-
-
-def change_svg_names(output_file, mapping):
-    """Changes the names into the svg to match theory atoms' names"""
-    svg_file = open(output_file, "r", encoding="utf8")
-    svg_lines = svg_file.readlines()
-    svg_output = """"""
-    for line in svg_lines:
-        found = re.search(BDD_LINE_REGEX, line)
-        if found is not None:
-            key_start_location = re.search(BDD_KEY_START_REGEX, line).start()
-            key_end_location = re.search(BDD_KEY_END_REGEX, line).start()
-            line = re.sub(
-                BDD_REPLECE_REGEX,
-                ">" + _get_string_from_atom(mapping[line[key_start_location:key_end_location]]) + "<",
-                line,
-            )
-        svg_output += line
-    svg_file.close()
-    with open(output_file, "w", encoding="utf8") as out:
-        print(svg_output, file=out)
 
 
 def translate_vtree_vars(original_dot: str, mapping: dict[str, FNode]) -> str:

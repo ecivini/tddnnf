@@ -1,12 +1,13 @@
 """interface for ddnnf compiler implementations"""
 
-from abc import ABC, abstractmethod
 import logging
 import os
 import random
+from abc import ABC, abstractmethod
 from typing import Dict, List, Tuple
 
 from pysmt.fnode import FNode
+
 from theorydd.formula import save_phi
 from theorydd.tddnnf.types import TheoryDNNFType
 

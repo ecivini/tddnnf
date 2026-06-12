@@ -1,20 +1,10 @@
 """tests for module formula"""
 
 from pysmt.fnode import FNode
-from pysmt.shortcuts import And, BOOL, FALSE, LE, Not, Or, Plus, REAL, Real, Symbol, TRUE, Times
+from pysmt.shortcuts import And, BOOL, LE, Not, Or, Plus, REAL, Real, Symbol, Times
 
 import theorydd.formula as formula
 from enumerators.solvers.mathsat_total import MathSATTotalEnumerator
-
-
-def test_bottom():
-    """test for formula.bottom()"""
-    assert formula.bottom() == FALSE(), "bottom is the node False"
-
-
-def test_top():
-    """test for formula.top()"""
-    assert formula.top() == TRUE(), "bottom is the node False"
 
 
 def test_get_phi_and_lemmas():
@@ -24,14 +14,6 @@ def test_get_phi_and_lemmas():
     phi_and_lemmas = formula.get_phi_and_lemmas(phi, tlemmas)
     assert isinstance(phi_and_lemmas, FNode), "phi and lemmas should be an FNode"
     assert phi_and_lemmas == And(phi, tlemmas[0], tlemmas[1]), "phi and lemmas is the big and of phi and all the lemmas"
-
-
-def test_big_and():
-    """tests for formula.big_and()"""
-    tlemmas = [Symbol("C", BOOL), Or(Symbol("A", BOOL), Symbol("C", BOOL))]
-    big_and = formula.big_and(tlemmas)
-    assert isinstance(big_and, FNode), "phi and lemmas should be an FNode"
-    assert big_and == And(tlemmas[0], tlemmas[1]), "Big and should be the And of all the items"
 
 
 def test_atom_diff():
@@ -55,30 +37,7 @@ def test_atom_diff():
     assert diff == [Symbol("C", BOOL)], "items missing in the second set should not be considered"
 
 
-def test_get_symbols():
-    """tests for formula.get_symbols()"""
-    phi = And(
-        Symbol("F", BOOL),
-        LE(Symbol("X", REAL), Symbol("Y", REAL)),
-        Symbol("Z", BOOL),
-    )
-    assert len(formula.get_symbols(phi)) == 4, "the normalized formula has 4 symbols"
-    phi = Or(
-        And(
-            Symbol("F", BOOL),
-            LE(Symbol("X", REAL), Symbol("Y", REAL)),
-            LE(Symbol("Y", REAL), Symbol("X", REAL)),
-            Symbol("Z", BOOL),
-        ),
-        Not(LE(Symbol("X", REAL), Symbol("Y", REAL))),
-        Not(LE(Symbol("Y", REAL), Symbol("X", REAL))),
-    )
-    assert len(formula.get_symbols(phi)) == 4, (
-        "the normalized formula has 4 symbols, even if some appear more than once"
-    )
-
-
-def test_get_atomss():
+def test_get_atoms():
     """tyests for get atoms"""
     phi = And(
         Symbol("F", BOOL),

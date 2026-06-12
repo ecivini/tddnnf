@@ -1,5 +1,6 @@
+from pysmt.shortcuts import LE, LT, REAL, And, Iff, Implies, Or, Plus, Real, Symbol
+
 from theorydd.tdd.theory_bdd import TheoryBDD
-from pysmt.shortcuts import And, Implies, Or, Iff, LT, LE, Real, Symbol, REAL, Plus
 
 
 def main():

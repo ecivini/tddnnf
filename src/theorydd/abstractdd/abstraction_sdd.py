@@ -3,15 +3,15 @@
 import logging
 import os
 from typing import Dict
-from pysmt.fnode import FNode
+
+from enumerators.solvers import SMTEnumerator
 from pysdd.sdd import SddManager, Vtree
-from theorydd.solvers.solver import SMTEnumerator
+from pysmt.fnode import FNode
+from pysmt.shortcuts import Bool
+
 from theorydd import formula
-from theorydd.tdd.theory_sdd import (
-    TheorySDD,
-    vtree_load_from_folder as _vtree_load_from_folder,
-)
-from theorydd.util._utils import get_solver as _get_solver
+from theorydd.tdd.theory_sdd import TheorySDD, vtree_load_from_folder
+from theorydd.util._utils import get_solver
 
 
 class AbstractionSDD(TheorySDD):
@@ -55,7 +55,7 @@ class AbstractionSDD(TheorySDD):
         super().__init__(
             phi,
             solver=solver,
-            tlemmas=[formula.top()],
+            tlemmas=[Bool(True)],
             load_lemmas=None,
             sat_result=None,
             vtree_type=vtree_type,
@@ -96,10 +96,10 @@ class AbstractionSDD(TheorySDD):
         if not os.path.isfile(f"{folder_path}/sdd.sdd"):
             raise FileNotFoundError(f"Cannot load Abstraction SDD: File {folder_path}/sdd.sdd does not exist")
         if isinstance(normalization_solver, str):
-            smt_solver = _get_solver(normalization_solver)
+            smt_solver = get_solver(normalization_solver)
         else:
             smt_solver = normalization_solver
-        self.vtree = _vtree_load_from_folder(folder_path)
+        self.vtree = vtree_load_from_folder(folder_path)
         self.manager = SddManager.from_vtree(self.vtree)
         self.root = self.manager.read_sdd_file(str.encode(f"{folder_path}/sdd.sdd"))
         abstraction = formula.load_abstraction_function(folder_path + "/abstraction.json")

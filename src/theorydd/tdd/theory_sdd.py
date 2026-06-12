@@ -1,26 +1,28 @@
 """theory SDD module"""
 
-from array import array
 import json
 import logging
 import os
 import time
-from typing import Dict, List, Set
-from copy import deepcopy as _deepcopy
+from array import array
 from collections.abc import Iterator
-from pysmt.fnode import FNode
-from pysdd.sdd import SddManager, Vtree, SddNode, WmcManager
-from theorydd import formula
-from theorydd.solvers.lemma_extractor import find_qvars
-from enumerators.solvers.solver import SMTEnumerator
-from theorydd.tdd.theory_dd import TheoryDD
-from theorydd.formula import get_atoms
-from theorydd.util._utils import get_solver as _get_solver
-from theorydd.walkers.walker_sdd import SDDWalker
-from theorydd.util._dd_dump_util import save_sdd_object as _save_sdd_object
-from theorydd.constants import VALID_VTREE, SAT
-from theorydd.util.custom_exceptions import InvalidVTreeException
+from copy import deepcopy
 from functools import reduce
+from typing import Dict, List, Set
+
+from enumerators.solvers import SMTEnumerator
+from enumerators.util.custom_exceptions import InvalidVTreeException
+from pysdd.sdd import SddManager, SddNode, Vtree, WmcManager
+from pysmt.fnode import FNode
+
+from theorydd import formula
+from theorydd.constants import VALID_VTREE
+from theorydd.formula import get_atoms
+from theorydd.solvers.lemma_extractor import find_qvars
+from theorydd.tdd.theory_dd import TheoryDD
+from theorydd.util._dd_dump_util import save_sdd_object
+from theorydd.util._utils import get_solver
+from theorydd.walkers.walker_sdd import SDDWalker
 
 
 class TheorySDD(TheoryDD):
@@ -94,7 +96,7 @@ class TheorySDD(TheoryDD):
             computation_logger["T-SDD"] = {}
         # get the solver
         if isinstance(solver, str):
-            smt_solver = _get_solver(solver)
+            smt_solver = get_solver(solver)
         else:
             smt_solver = solver
 
@@ -125,7 +127,7 @@ class TheorySDD(TheoryDD):
 
         # CREATING VARIABLE MAPPING
         if use_abstraction is not None:
-            self.abstraction = _deepcopy(use_abstraction)
+            self.abstraction = deepcopy(use_abstraction)
             # extend old abstraction with new atoms
             for qvar in self.qvars:
                 old_len = len(self.abstraction)
@@ -153,7 +155,7 @@ class TheorySDD(TheoryDD):
         self.logger.info("SDD preparation phase completed in %s seconds", str(elapsed_time))
         computation_logger["T-SDD"]["DD preparation time"] = elapsed_time
 
-        if sat_result is None or sat_result == SAT:
+        if sat_result is None or sat_result is True:
             self.root = self._build(phi, tlemmas, walker, computation_logger["T-SDD"])
         else:
             self.root = self._build_unsat(walker, computation_logger["T-SDD"])
@@ -314,7 +316,7 @@ class TheorySDD(TheoryDD):
         # this is not very manageable in
         # the geenral case since some
         # labels may not appear in the SDD
-        if _save_sdd_object(self.root, output_file, self.refinement, "SDD", dump_abstraction):
+        if save_sdd_object(self.root, output_file, self.refinement, "SDD", dump_abstraction):
             elapsed_time = time.time() - start_time
             self.logger.info("SDD saved as %s in %s seconds", output_file, str(elapsed_time))
         else:
@@ -329,7 +331,7 @@ class TheorySDD(TheoryDD):
         Args:
             output_file (str): the path to the output file
         """
-        if not _save_sdd_object(self.vtree, output_file, self.refinement, "VTree"):
+        if not save_sdd_object(self.vtree, output_file, self.refinement, "VTree"):
             self.logger.info(
                 "V-Tree could not be saved: The file format of %s is not supported",
                 output_file,
@@ -411,7 +413,7 @@ class TheorySDD(TheoryDD):
             raise FileNotFoundError("The folder does not exist")
         self.vtree = vtree_load_from_folder(folder_path)
         if normalization_solver is None:
-            normalization_solver = _get_solver("total")
+            normalization_solver = get_solver("total")
         abstraction = formula.load_abstraction_function(folder_path + "/abstraction.json")
         self.abstraction = {
             formula.get_normalized(key, normalization_solver.get_converter()): value
@@ -455,5 +457,5 @@ def tsdd_load_from_folder(folder_path: str, normalizer_solver: SMTEnumerator | N
         TheorySDD: the T-SDD loaded from the input folder
     """
     if normalizer_solver is None:
-        normalizer_solver = _get_solver("total")
+        normalizer_solver = get_solver("total")
     return TheorySDD(None, folder_name=folder_path, solver=normalizer_solver)

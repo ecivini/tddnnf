@@ -3,40 +3,50 @@
 import json
 import logging
 import os
-import time
 import subprocess
-from typing import Dict, List, Set, Tuple, TypeVar
+import time
 from dataclasses import dataclass
-from pysmt.shortcuts import (
-    And,
-    Or,
-    get_atoms,
-    TRUE,
-    FALSE,
-    Not,
-)
-from pysmt.fnode import FNode
-from theorydd.formula import (
-    save_refinement,
-    load_refinement,
-    get_phi_and_lemmas,
-    get_normalized,
-)
-from theorydd.walkers.walker_bcs12 import BCS12Walker
-from theorydd.constants import (
-    D4_COMMAND as _D4_COMMAND,
-    D4_AND_NODE as _D4_AND_NODE,
-    D4_OR_NODE as _D4_OR_NODE,
-    D4_TRUE_NODE as _D4_TRUE_NODE,
-    D4_FALSE_NODE as _D4_FALSE_NODE,
-    RE_NNF_EDGE as _RE_NNF_EDGE,
-)
+from typing import Dict, List, Set, Tuple, TypeVar
+
 from enumerators.solvers.mathsat_total import MathSATTotalEnumerator
 from enumerators.solvers.solver import SMTEnumerator
+from pysmt.fnode import FNode
+from pysmt.shortcuts import (
+    FALSE,
+    TRUE,
+    And,
+    Not,
+    Or,
+    get_atoms,
+)
 
+from theorydd.constants import (
+    D4_AND_NODE as _D4_AND_NODE,
+)
+from theorydd.constants import (
+    D4_COMMAND as _D4_COMMAND,
+)
+from theorydd.constants import (
+    D4_FALSE_NODE as _D4_FALSE_NODE,
+)
+from theorydd.constants import (
+    D4_OR_NODE as _D4_OR_NODE,
+)
+from theorydd.constants import (
+    D4_TRUE_NODE as _D4_TRUE_NODE,
+)
+from theorydd.constants import (
+    RE_NNF_EDGE as _RE_NNF_EDGE,
+)
 from theorydd.ddnnf.ddnnf_compiler import DDNNFCompiler
+from theorydd.formula import (
+    get_normalized,
+    get_phi_and_lemmas,
+    load_refinement,
+    save_refinement,
+)
 from theorydd.tddnnf.types import TheoryDNNFType
-
+from theorydd.walkers.walker_bcs12 import BCS12Walker
 
 _SelfD4Node = TypeVar("SelfD4Node", bound="D4Node")
 
